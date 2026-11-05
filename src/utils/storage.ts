@@ -1,8 +1,8 @@
 import { DayLog, GoalConfig } from '../types/workout';
 import { DEFAULT_GOAL, INITIAL_LOGS } from '../data/seedData';
 
-const LOGS_STORAGE_KEY = 'prof_giu_workout_logs_v1';
-const GOAL_STORAGE_KEY = 'prof_giu_goal_config_v1';
+const LOGS_STORAGE_KEY = 'prof_giu_workout_logs_nov2026_v2';
+const GOAL_STORAGE_KEY = 'prof_giu_goal_config_nov2026_v2';
 
 export function loadLogs(): Record<string, DayLog> {
   try {
@@ -11,8 +11,17 @@ export function loadLogs(): Record<string, DayLog> {
       saveLogs(INITIAL_LOGS);
       return INITIAL_LOGS;
     }
-    const parsed = JSON.parse(raw);
-    return parsed;
+    const parsed: Record<string, DayLog> = JSON.parse(raw);
+    
+    // Strictly filter out any past activity before November 1st, 2026
+    const filtered: Record<string, DayLog> = {};
+    Object.entries(parsed).forEach(([date, log]) => {
+      if (date >= '2026-11-01' && date <= '2026-12-31') {
+        filtered[date] = log;
+      }
+    });
+
+    return filtered;
   } catch (err) {
     console.error('Error loading logs from localStorage:', err);
     return INITIAL_LOGS;
@@ -21,7 +30,14 @@ export function loadLogs(): Record<string, DayLog> {
 
 export function saveLogs(logs: Record<string, DayLog>): void {
   try {
-    localStorage.setItem(LOGS_STORAGE_KEY, JSON.stringify(logs));
+    // Only save logs within November 1st, 2026 - December 31, 2026
+    const cleanLogs: Record<string, DayLog> = {};
+    Object.entries(logs).forEach(([date, log]) => {
+      if (date >= '2026-11-01') {
+        cleanLogs[date] = log;
+      }
+    });
+    localStorage.setItem(LOGS_STORAGE_KEY, JSON.stringify(cleanLogs));
   } catch (err) {
     console.error('Error saving logs to localStorage:', err);
   }
@@ -35,9 +51,14 @@ export function loadGoal(): GoalConfig {
       return DEFAULT_GOAL;
     }
     const parsed = JSON.parse(raw);
-    // If previously saved as Giu Pereira, migrate to Giu Sousa
     const userName = (parsed.userName === 'Giu Pereira' || !parsed.userName) ? 'Giu Sousa' : parsed.userName;
-    const merged = { ...DEFAULT_GOAL, ...parsed, userName };
+    const merged: GoalConfig = {
+      ...DEFAULT_GOAL,
+      ...parsed,
+      userName,
+      startDate: '2026-11-01',
+      targetEndDate: '2026-12-31',
+    };
     saveGoal(merged);
     return merged;
   } catch (err) {
@@ -57,6 +78,10 @@ export function saveGoal(goal: GoalConfig): void {
 export function resetToDefaults(): { logs: Record<string, DayLog>; goal: GoalConfig } {
   localStorage.removeItem(LOGS_STORAGE_KEY);
   localStorage.removeItem(GOAL_STORAGE_KEY);
+  // Also clean old v1 keys if present
+  localStorage.removeItem('prof_giu_workout_logs_v1');
+  localStorage.removeItem('prof_giu_goal_config_v1');
+
   saveLogs(INITIAL_LOGS);
   saveGoal(DEFAULT_GOAL);
   return { logs: INITIAL_LOGS, goal: DEFAULT_GOAL };
@@ -66,7 +91,9 @@ export function resetToDefaults(): { logs: Record<string, DayLog>; goal: GoalCon
 export function exportDataAsJSON(): string {
   const data = {
     app: 'prof_giu_workout_tracker',
-    version: '1.0',
+    version: '2.0',
+    startDate: '2026-11-01',
+    endDate: '2026-12-31',
     exportedAt: new Date().toISOString(),
     goal: loadGoal(),
     logs: loadLogs(),
@@ -82,7 +109,7 @@ export function importDataFromJSON(jsonString: string): { success: boolean; coun
     }
     saveLogs(parsed.logs);
     if (parsed.goal) {
-      saveGoal({ ...DEFAULT_GOAL, ...parsed.goal, userName: 'Giu Sousa' });
+      saveGoal({ ...DEFAULT_GOAL, ...parsed.goal });
     }
     return { success: true, count: Object.keys(parsed.logs).length };
   } catch (err) {

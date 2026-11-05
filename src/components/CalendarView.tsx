@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { ChevronLeft, ChevronRight, Waves, Dumbbell, Check, Calendar as CalendarIcon, Sparkles, Plus, Flag } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Waves, Dumbbell, Bike, Footprints, Check, Calendar as CalendarIcon, Flag } from 'lucide-react';
 import { DayLog } from '../types/workout';
-import { formatISODate, parseISODate, TODAY_STR, getMondayOfWeek, getSundayOfWeek } from '../utils/statsCalculator';
+import { formatISODate, parseISODate, TODAY_STR } from '../utils/statsCalculator';
 
 interface CalendarViewProps {
   logs: Record<string, DayLog>;
@@ -25,9 +25,9 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
   onQuickToggleGym,
   selectedDateStr,
 }) => {
-  // Start on November 2026 (current time)
+  // Start on November 2026 strictly
   const [currentYear, setCurrentYear] = useState<number>(2026);
-  const [currentMonth, setCurrentMonth] = useState<number>(10); // 0-indexed: 10 = November
+  const [currentMonth, setCurrentMonth] = useState<number>(10); // 10 = November
 
   const handlePrevMonth = () => {
     if (currentMonth === 0) {
@@ -56,13 +56,11 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
   const firstDayOfMonth = new Date(currentYear, currentMonth, 1);
   const lastDayOfMonth = new Date(currentYear, currentMonth + 1, 0);
 
-  // Day of week for 1st day (0 = Sunday, 1 = Monday). Convert to Monday = 0
   let firstDayIndex = firstDayOfMonth.getDay() - 1;
-  if (firstDayIndex === -1) firstDayIndex = 6; // Sunday becomes 6
+  if (firstDayIndex === -1) firstDayIndex = 6;
 
   const daysInMonth = lastDayOfMonth.getDate();
 
-  // Days from previous month to fill leading slots
   const prevMonthLastDay = new Date(currentYear, currentMonth, 0).getDate();
   const leadingDays: { dateStr: string; dayNum: number; isCurrentMonth: boolean }[] = [];
   for (let i = firstDayIndex - 1; i >= 0; i--) {
@@ -75,7 +73,6 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
     });
   }
 
-  // Days in current month
   const currentMonthDays: { dateStr: string; dayNum: number; isCurrentMonth: boolean }[] = [];
   for (let d = 1; d <= daysInMonth; d++) {
     const curDate = new Date(currentYear, currentMonth, d, 12);
@@ -86,7 +83,6 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
     });
   }
 
-  // Trailing days from next month
   const totalSlotsSoFar = leadingDays.length + currentMonthDays.length;
   const trailingCount = (7 - (totalSlotsSoFar % 7)) % 7;
   const trailingDays: { dateStr: string; dayNum: number; isCurrentMonth: boolean }[] = [];
@@ -101,7 +97,6 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
 
   const allCalendarDays = [...leadingDays, ...currentMonthDays, ...trailingDays];
 
-  // Group into weeks of 7
   const weeks: { dateStr: string; dayNum: number; isCurrentMonth: boolean }[][] = [];
   for (let i = 0; i < allCalendarDays.length; i += 7) {
     weeks.push(allCalendarDays.slice(i, i + 7));
@@ -123,59 +118,39 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
               </h2>
               {currentYear === 2026 && currentMonth === 10 && (
                 <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-cyan-500/15 text-cyan-300 border border-cyan-500/30">
-                  Mês Atual
+                  Início do Desafio
                 </span>
               )}
             </div>
             <p className="text-xs text-slate-400">
-              Clique em qualquer dia para ver ou editar detalhes
+              Período ativo: 01 de Novembro a 31 de Dezembro de 2026
             </p>
           </div>
         </div>
 
         {/* Navigation & Quick Jump buttons */}
         <div className="flex flex-wrap items-center gap-2">
-          {/* Quick jump to Key Challenge Months in 2026 */}
-          <div className="hidden md:flex items-center bg-slate-950 p-1 rounded-xl border border-slate-800 text-xs">
+          {/* Quick jump to November & December 2026 */}
+          <div className="flex items-center bg-slate-950 p-1 rounded-xl border border-slate-800 text-xs">
             <button
-              onClick={() => jumpToMonth(8)}
-              className={`px-2.5 py-1 rounded-lg transition-colors cursor-pointer ${
-                currentMonth === 8 && currentYear === 2026
-                  ? 'bg-slate-800 text-white font-semibold'
-                  : 'text-slate-400 hover:text-slate-200'
-              }`}
-            >
-              Set
-            </button>
-            <button
-              onClick={() => jumpToMonth(9)}
-              className={`px-2.5 py-1 rounded-lg transition-colors cursor-pointer ${
-                currentMonth === 9 && currentYear === 2026
-                  ? 'bg-slate-800 text-white font-semibold'
-                  : 'text-slate-400 hover:text-slate-200'
-              }`}
-            >
-              Out
-            </button>
-            <button
-              onClick={() => jumpToMonth(10)}
-              className={`px-2.5 py-1 rounded-lg transition-colors cursor-pointer ${
+              onClick={() => jumpToMonth(10, 2026)}
+              className={`px-3 py-1 rounded-lg transition-colors cursor-pointer ${
                 currentMonth === 10 && currentYear === 2026
                   ? 'bg-cyan-500/20 text-cyan-300 font-bold border border-cyan-500/30'
                   : 'text-slate-400 hover:text-slate-200'
               }`}
             >
-              Nov (Hoje)
+              Novembro (Início)
             </button>
             <button
-              onClick={() => jumpToMonth(11)}
-              className={`px-2.5 py-1 rounded-lg transition-colors cursor-pointer ${
+              onClick={() => jumpToMonth(11, 2026)}
+              className={`px-3 py-1 rounded-lg transition-colors cursor-pointer ${
                 currentMonth === 11 && currentYear === 2026
                   ? 'bg-rose-500/20 text-rose-300 font-bold border border-rose-500/30'
                   : 'text-slate-400 hover:text-slate-200'
               }`}
             >
-              Dez (Fim de Ano 🏁)
+              Dezembro (Meta 31/12 🏁)
             </button>
           </div>
 
@@ -204,24 +179,32 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
         </div>
       </div>
 
-      {/* Legend & Quick Info */}
+      {/* Legend */}
       <div className="flex flex-wrap items-center justify-between gap-3 py-3 text-xs text-slate-400 border-b border-slate-800/60">
-        <div className="flex flex-wrap items-center gap-4">
+        <div className="flex flex-wrap items-center gap-3 sm:gap-4">
           <div className="flex items-center gap-1.5">
-            <span className="w-3 h-3 rounded-md bg-cyan-500/20 border border-cyan-500/40 inline-flex items-center justify-center text-[9px] text-cyan-300">
+            <span className="w-3 h-3 rounded bg-cyan-500/20 border border-cyan-500/40 inline-flex items-center justify-center text-[9px] text-cyan-300">
               🏊
             </span>
-            <span>Natação (km)</span>
+            <span>Natação</span>
           </div>
           <div className="flex items-center gap-1.5">
-            <span className="w-3 h-3 rounded-md bg-rose-500/20 border border-rose-500/40 inline-flex items-center justify-center text-[9px] text-rose-300">
+            <span className="w-3 h-3 rounded bg-rose-500/20 border border-rose-500/40 inline-flex items-center justify-center text-[9px] text-rose-300">
               🏋️
             </span>
-            <span>Academia (Foco)</span>
+            <span>Academia</span>
           </div>
           <div className="flex items-center gap-1.5">
-            <span className="w-3 h-3 rounded-md bg-gradient-to-tr from-cyan-500 to-rose-500 inline-block" />
-            <span>Combo Completo (Ambos)</span>
+            <span className="w-3 h-3 rounded bg-amber-500/20 border border-amber-500/40 inline-flex items-center justify-center text-[9px] text-amber-300">
+              🚴
+            </span>
+            <span>Bike</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <span className="w-3 h-3 rounded bg-emerald-500/20 border border-emerald-500/40 inline-flex items-center justify-center text-[9px] text-emerald-300">
+              🏃
+            </span>
+            <span>Corrida</span>
           </div>
           <div className="flex items-center gap-1.5">
             <Flag className="w-3.5 h-3.5 text-amber-400" />
@@ -230,7 +213,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
         </div>
 
         <div className="text-[11px] text-slate-500">
-          Resumo semanal na coluna direita 👉
+          Clique no dia para detalhes 👉
         </div>
       </div>
 
@@ -252,9 +235,11 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
           {/* Weeks Rows */}
           <div className="space-y-2">
             {weeks.map((week, wIdx) => {
-              // Calculate weekly totals for this row
               let weekSwimKm = 0;
               let weekGymCount = 0;
+              let weekBikeKm = 0;
+              let weekRunKm = 0;
+
               week.forEach((slot) => {
                 const log = logs[slot.dateStr];
                 if (log?.swimCompleted) {
@@ -263,35 +248,49 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                 if (log?.gymCompleted) {
                   weekGymCount += 1;
                 }
+                if (log?.bikeCompleted) {
+                  weekBikeKm += log.bike?.distanceKm || 0;
+                }
+                if (log?.runCompleted) {
+                  weekRunKm += log.run?.distanceKm || 0;
+                }
               });
+
               weekSwimKm = Math.round(weekSwimKm * 10) / 10;
-              const gymMet = weekGymCount >= 4;
+              weekBikeKm = Math.round(weekBikeKm * 10) / 10;
+              weekRunKm = Math.round(weekRunKm * 10) / 10;
 
               return (
                 <div key={wIdx} className="grid grid-cols-8 gap-2">
-                  {/* 7 Days of the week */}
                   {week.map((slot) => {
                     const isToday = slot.dateStr === TODAY_STR;
                     const isSelected = slot.dateStr === selectedDateStr;
                     const isTargetDeadline = slot.dateStr === '2026-12-31';
+                    const isBeforeNov = slot.dateStr < '2026-11-01';
+                    const isAfterDec = slot.dateStr > '2026-12-31';
+                    const isOutOfProject = isBeforeNov || isAfterDec;
+
                     const log = logs[slot.dateStr];
                     const hasSwim = Boolean(log?.swimCompleted);
                     const hasGym = Boolean(log?.gymCompleted);
-                    const hasBoth = hasSwim && hasGym;
+                    const hasBike = Boolean(log?.bikeCompleted);
+                    const hasRun = Boolean(log?.runCompleted);
+
+                    const totalChecks = [hasSwim, hasGym, hasBike, hasRun].filter(Boolean).length;
 
                     return (
                       <div
                         key={slot.dateStr}
                         onClick={() => onSelectDay(slot.dateStr)}
-                        className={`group relative min-h-[92px] rounded-xl p-2 border transition-all cursor-pointer flex flex-col justify-between ${
-                          !slot.isCurrentMonth
-                            ? 'opacity-35 bg-slate-950/40 border-slate-900'
+                        className={`group relative min-h-[96px] rounded-xl p-2 border transition-all cursor-pointer flex flex-col justify-between ${
+                          isOutOfProject || !slot.isCurrentMonth
+                            ? 'opacity-30 bg-slate-950/40 border-slate-900'
                             : isToday
                             ? 'bg-slate-900/90 border-cyan-400 ring-2 ring-cyan-400/20 shadow-lg shadow-cyan-950/50'
                             : isSelected
                             ? 'bg-slate-800/90 border-indigo-400'
                             : 'bg-slate-950/70 hover:bg-slate-900 border-slate-800/70 hover:border-slate-700'
-                        } ${hasBoth ? 'ring-1 ring-cyan-500/30' : ''}`}
+                        }`}
                       >
                         {/* Day number & indicators */}
                         <div className="flex items-center justify-between">
@@ -315,32 +314,34 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                           </div>
 
                           {/* Quick check toggle mini-button on hover */}
-                          <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1">
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                onQuickToggleSwim(slot.dateStr);
-                              }}
-                              className={`w-4 h-4 rounded text-[9px] flex items-center justify-center cursor-pointer ${
-                                hasSwim ? 'bg-cyan-500 text-slate-950' : 'bg-slate-800 text-slate-300 hover:bg-cyan-500/30'
-                              }`}
-                              title={hasSwim ? 'Remover natação' : 'Check natação (+1.5km)'}
-                            >
-                              🏊
-                            </button>
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                              onQuickToggleGym(slot.dateStr);
-                              }}
-                              className={`w-4 h-4 rounded text-[9px] flex items-center justify-center cursor-pointer ${
-                                hasGym ? 'bg-rose-500 text-slate-950' : 'bg-slate-800 text-slate-300 hover:bg-rose-500/30'
-                              }`}
-                              title={hasGym ? 'Remover academia' : 'Check academia'}
-                            >
-                              🏋️
-                            </button>
-                          </div>
+                          {!isOutOfProject && (
+                            <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1">
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  onQuickToggleSwim(slot.dateStr);
+                                }}
+                                className={`w-4 h-4 rounded text-[9px] flex items-center justify-center cursor-pointer ${
+                                  hasSwim ? 'bg-cyan-500 text-slate-950' : 'bg-slate-800 text-slate-300 hover:bg-cyan-500/30'
+                                }`}
+                                title={hasSwim ? 'Remover natação' : 'Check natação'}
+                              >
+                                🏊
+                              </button>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  onQuickToggleGym(slot.dateStr);
+                                }}
+                                className={`w-4 h-4 rounded text-[9px] flex items-center justify-center cursor-pointer ${
+                                  hasGym ? 'bg-rose-500 text-slate-950' : 'bg-slate-800 text-slate-300 hover:bg-rose-500/30'
+                                }`}
+                                title={hasGym ? 'Remover academia' : 'Check academia'}
+                              >
+                                🏋️
+                              </button>
+                            </div>
+                          )}
                         </div>
 
                         {/* Badges / Check Content */}
@@ -363,21 +364,37 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                             </div>
                           )}
 
-                          {!hasSwim && !hasGym && isTargetDeadline && (
+                          {hasBike && (
+                            <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-amber-950/80 border border-amber-500/30 text-amber-300 text-[10px] font-semibold leading-tight truncate">
+                              <Bike className="w-2.5 h-2.5 shrink-0 text-amber-400" />
+                              <span className="truncate">
+                                {log?.bike?.distanceKm || 0}km
+                              </span>
+                            </div>
+                          )}
+
+                          {hasRun && (
+                            <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-emerald-950/80 border border-emerald-500/30 text-emerald-300 text-[10px] font-semibold leading-tight truncate">
+                              <Footprints className="w-2.5 h-2.5 shrink-0 text-emerald-400" />
+                              <span className="truncate">
+                                {log?.run?.distanceKm || 0}km
+                              </span>
+                            </div>
+                          )}
+
+                          {totalChecks === 0 && isTargetDeadline && (
                             <div className="px-1.5 py-0.5 rounded bg-amber-950/60 border border-amber-500/30 text-amber-300 text-[9px] font-bold text-center">
-                              META 45KM
+                              META FINAL
                             </div>
                           )}
                         </div>
 
                         {/* Bottom Status Dot */}
                         <div className="flex items-center justify-between text-[9px] text-slate-500">
-                          {hasBoth ? (
+                          {totalChecks > 0 ? (
                             <span className="text-emerald-400 font-bold flex items-center gap-0.5">
-                              <Check className="w-2.5 h-2.5" /> 2 checks
+                              <Check className="w-2.5 h-2.5" /> {totalChecks} {totalChecks === 1 ? 'check' : 'checks'}
                             </span>
-                          ) : hasSwim || hasGym ? (
-                            <span className="text-slate-400">1 check</span>
                           ) : (
                             <span />
                           )}
@@ -393,35 +410,39 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                   {/* 8th Column: Weekly Summary Card */}
                   <div className="rounded-xl p-2.5 bg-slate-950/90 border border-slate-800 flex flex-col justify-between text-xs">
                     <div>
-                      <div className="flex items-center justify-between text-[11px] font-semibold text-slate-400">
-                        <span>Total Sem</span>
-                        {gymMet ? (
-                          <span className="text-emerald-400 font-bold flex items-center gap-0.5">
-                            <Check className="w-3 h-3 stroke-[3]" /> 4x+
-                          </span>
-                        ) : (
-                          <span className="text-slate-500">{weekGymCount}/4</span>
-                        )}
+                      <div className="text-[11px] font-semibold text-slate-400 mb-1">
+                        Resumo Sem
                       </div>
 
-                      <div className="mt-2 space-y-1">
-                        <div className="flex items-center justify-between text-[11px]">
-                          <span className="text-cyan-400 font-medium flex items-center gap-1">
-                            <Waves className="w-3 h-3" />
-                            {weekSwimKm} km
-                          </span>
-                        </div>
-                        <div className="flex items-center justify-between text-[11px]">
-                          <span className="text-rose-400 font-medium flex items-center gap-1">
-                            <Dumbbell className="w-3 h-3" />
-                            {weekGymCount} {weekGymCount === 1 ? 'treino' : 'treinos'}
-                          </span>
-                        </div>
+                      <div className="space-y-1">
+                        {weekSwimKm > 0 && (
+                          <div className="text-[10px] text-cyan-400 flex items-center gap-1">
+                            <Waves className="w-2.5 h-2.5" /> {weekSwimKm} km
+                          </div>
+                        )}
+                        {weekGymCount > 0 && (
+                          <div className="text-[10px] text-rose-400 flex items-center gap-1">
+                            <Dumbbell className="w-2.5 h-2.5" /> {weekGymCount}x
+                          </div>
+                        )}
+                        {weekBikeKm > 0 && (
+                          <div className="text-[10px] text-amber-400 flex items-center gap-1">
+                            <Bike className="w-2.5 h-2.5" /> {weekBikeKm} km
+                          </div>
+                        )}
+                        {weekRunKm > 0 && (
+                          <div className="text-[10px] text-emerald-400 flex items-center gap-1">
+                            <Footprints className="w-2.5 h-2.5" /> {weekRunKm} km
+                          </div>
+                        )}
+                        {weekSwimKm === 0 && weekGymCount === 0 && weekBikeKm === 0 && weekRunKm === 0 && (
+                          <div className="text-[10px] text-slate-600">Sem treinos</div>
+                        )}
                       </div>
                     </div>
 
                     <div className="pt-1.5 border-t border-slate-800/80 text-[10px] text-slate-500 text-center">
-                      {gymMet ? 'Meta OK! 🎯' : `${4 - weekGymCount} p/ meta`}
+                      Semana {wIdx + 45}
                     </div>
                   </div>
                 </div>

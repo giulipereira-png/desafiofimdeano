@@ -9,6 +9,8 @@ import {
   Sparkles,
   Waves,
   Dumbbell,
+  Bike,
+  Footprints,
   Flame,
   Target,
   Calendar,
@@ -42,7 +44,7 @@ export const InstagramStoryModal: React.FC<InstagramStoryModalProps> = ({
   const [theme, setTheme] = useState<StoryTheme>('obsidian');
   const [headline, setHeadline] = useState<string>('CHECK DO DIA PAGO! 🔥');
   const [showStreakBadge, setShowStreakBadge] = useState<boolean>(true);
-  const [customNote, setCustomNote] = useState<string>('Mais um dia de disciplina concluído rumo a 31/12/2026!');
+  const [customNote, setCustomNote] = useState<string>('Mais um dia de disciplina concluído!');
   const [isGenerating, setIsGenerating] = useState<boolean>(false);
   const [copiedCaption, setCopiedCaption] = useState<boolean>(false);
 
@@ -51,17 +53,36 @@ export const InstagramStoryModal: React.FC<InstagramStoryModalProps> = ({
   const isToday = currentDateStr === TODAY_STR;
   const isSwimDone = Boolean(dayLog?.swimCompleted);
   const isGymDone = Boolean(dayLog?.gymCompleted);
+  const isBikeDone = Boolean(dayLog?.bikeCompleted);
+  const isRunDone = Boolean(dayLog?.runCompleted);
+
   const swimDistance = dayLog?.swim?.distanceMeters || (isSwimDone ? 1500 : 0);
   const gymFocus = dayLog?.gym?.focus || 'Treino Feito';
+  const bikeDistance = dayLog?.bike?.distanceKm || 20;
+  const runDistance = dayLog?.run?.distanceKm || 5;
 
   // Format ready caption for Instagram
   const generateCaption = () => {
-    return `Check de hoje pago! ✅🔥\n\n` +
-      `🏊‍♀️ Natação: ${isSwimDone ? `+${(swimDistance / 1000).toFixed(1)}km na conta! (Total: ${stats.totalSwimKm.toFixed(1)}km / ${goal.swimTargetKm}km)` : 'Descanso ativo na água'}\n` +
-      `🏋️‍♀️ Academia: ${isGymDone ? `${gymFocus} concluído! (${stats.currentWeekGymCount}/${goal.gymWeeklyTargetDays} na semana)` : 'Dia sem musculação'}\n\n` +
-      `🎯 Meta Individual 2026: Faltam apenas ${stats.daysRemainingToGoal} dias até 31/12/2026!\n` +
-      `🔥 Sequência ativa: ${stats.currentActiveDayStreak} dias seguidos de constância.\n\n` +
-      `#ProfGiu #Meta2026 #Natacao45km #Academia4x #Disciplina #TreinoIndividual #Constancia`;
+    const parts: string[] = ['Check de hoje pago! ✅🔥\n'];
+
+    if (goal.swimEnabled ?? true) {
+      parts.push(`🏊‍♀️ Natação: ${isSwimDone ? `+${(swimDistance / 1000).toFixed(1)}km hoje! (Total: ${stats.totalSwimKm.toFixed(1)}km / ${goal.swimTargetKm}km)` : 'Descanso ativo na água'}`);
+    }
+    if (goal.gymEnabled ?? true) {
+      parts.push(`🏋️‍♀️ Academia: ${isGymDone ? `${gymFocus} concluído! (${stats.currentWeekGymCount}/${goal.gymWeeklyTargetDays} na semana)` : 'Sem musculação hoje'}`);
+    }
+    if (goal.bikeEnabled ?? true) {
+      parts.push(`🚴 Ciclismo: ${isBikeDone ? `+${bikeDistance}km pedalados! (Total: ${stats.totalBikeKm.toFixed(1)}km / ${goal.bikeTargetKm}km)` : 'Sem pedal hoje'}`);
+    }
+    if (goal.runEnabled ?? true) {
+      parts.push(`🏃 Corrida: ${isRunDone ? `+${runDistance}km corridos! (Total: ${stats.totalRunKm.toFixed(1)}km / ${goal.runTargetKm}km)` : 'Sem corrida hoje'}`);
+    }
+
+    parts.push(`\n🎯 Meta Individual: Faltam ${stats.daysRemainingToGoal} dias até ${goal.targetEndDate || '31/12/2026'}!`);
+    parts.push(`🔥 Sequência ativa: ${stats.currentActiveDayStreak} dias consecutivos de constância.\n`);
+    parts.push(`#${goal.userHandle.replace('@', '')} #Meta2026 #TreinoIndividual #Disciplina #Constancia`);
+
+    return parts.join('\n');
   };
 
   const handleCopyCaption = async () => {
@@ -85,7 +106,7 @@ export const InstagramStoryModal: React.FC<InstagramStoryModalProps> = ({
       });
       const dataUrl = canvas.toDataURL('image/png');
       const link = document.createElement('a');
-      link.download = `story-prof-giu-${currentDateStr}.png`;
+      link.download = `story-${goal.userHandle.replace('@', '')}-${currentDateStr}.png`;
       link.href = dataUrl;
       link.click();
 
@@ -116,14 +137,14 @@ export const InstagramStoryModal: React.FC<InstagramStoryModalProps> = ({
           return;
         }
 
-        const file = new File([blob], `story-prof-giu-${currentDateStr}.png`, {
+        const file = new File([blob], `story-${goal.userHandle.replace('@', '')}-${currentDateStr}.png`, {
           type: 'image/png',
         });
 
         if (navigator.canShare && navigator.canShare({ files: [file] })) {
           await navigator.share({
             files: [file],
-            title: `Check do dia @prof_giu`,
+            title: `Check do dia ${goal.userHandle}`,
             text: generateCaption(),
           });
         } else {
@@ -148,6 +169,8 @@ export const InstagramStoryModal: React.FC<InstagramStoryModalProps> = ({
           accentGradient: 'from-cyan-400 to-teal-300',
           checkSwimBg: 'bg-cyan-500/20 border-cyan-400/50 text-cyan-200',
           checkGymBg: 'bg-slate-900/90 border-slate-700 text-slate-200',
+          checkBikeBg: 'bg-amber-950/50 border-amber-500/40 text-amber-200',
+          checkRunBg: 'bg-emerald-950/50 border-emerald-500/40 text-emerald-200',
           glow: 'from-cyan-500/20 via-teal-500/10 to-transparent',
         };
       case 'sunset':
@@ -156,6 +179,8 @@ export const InstagramStoryModal: React.FC<InstagramStoryModalProps> = ({
           accentGradient: 'from-rose-400 via-pink-400 to-amber-300',
           checkSwimBg: 'bg-slate-900/90 border-slate-700 text-slate-200',
           checkGymBg: 'bg-rose-500/20 border-rose-400/50 text-rose-200',
+          checkBikeBg: 'bg-amber-500/20 border-amber-400/50 text-amber-200',
+          checkRunBg: 'bg-emerald-900/40 border-emerald-500/30 text-emerald-200',
           glow: 'from-rose-500/20 via-amber-500/10 to-transparent',
         };
       case 'titanium':
@@ -164,6 +189,8 @@ export const InstagramStoryModal: React.FC<InstagramStoryModalProps> = ({
           accentGradient: 'from-slate-200 to-slate-400',
           checkSwimBg: 'bg-slate-900 border-slate-700 text-slate-200',
           checkGymBg: 'bg-slate-900 border-slate-700 text-slate-200',
+          checkBikeBg: 'bg-slate-900 border-slate-700 text-slate-200',
+          checkRunBg: 'bg-slate-900 border-slate-700 text-slate-200',
           glow: 'from-slate-500/10 via-slate-700/10 to-transparent',
         };
       case 'obsidian':
@@ -173,6 +200,8 @@ export const InstagramStoryModal: React.FC<InstagramStoryModalProps> = ({
           accentGradient: 'from-cyan-300 via-indigo-300 to-rose-300',
           checkSwimBg: 'bg-cyan-950/60 border-cyan-500/30 text-cyan-200',
           checkGymBg: 'bg-rose-950/60 border-rose-500/30 text-rose-200',
+          checkBikeBg: 'bg-amber-950/60 border-amber-500/30 text-amber-200',
+          checkRunBg: 'bg-emerald-950/60 border-emerald-500/30 text-emerald-200',
           glow: 'from-cyan-500/15 via-rose-500/10 to-transparent',
         };
     }
@@ -239,7 +268,7 @@ export const InstagramStoryModal: React.FC<InstagramStoryModalProps> = ({
                 <div className="flex items-center gap-2.5">
                   <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-cyan-400 via-rose-500 to-amber-400 p-[2px] shadow-md">
                     <div className="w-full h-full bg-slate-900 rounded-full flex items-center justify-center font-bold text-xs text-white">
-                      GS
+                      {goal.userName ? goal.userName.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase() : 'GS'}
                     </div>
                   </div>
                   <div>
@@ -263,7 +292,7 @@ export const InstagramStoryModal: React.FC<InstagramStoryModalProps> = ({
               </div>
 
               {/* CARD MIDDLE: Headline & Daily Checks */}
-              <div className="relative z-10 my-auto py-3 space-y-3">
+              <div className="relative z-10 my-auto py-2 space-y-2.5">
                 {/* Headline Badge */}
                 <div className="text-center">
                   <span className="inline-block px-3 py-1 rounded-full text-[11px] font-extrabold uppercase tracking-widest bg-white/10 border border-white/20 text-white backdrop-blur-md shadow-sm">
@@ -272,75 +301,141 @@ export const InstagramStoryModal: React.FC<InstagramStoryModalProps> = ({
                 </div>
 
                 {/* Swim Check Box */}
-                <div className={`p-3 rounded-2xl border backdrop-blur-md transition-all ${themeStyles.checkSwimBg}`}>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <div className="w-7 h-7 rounded-lg bg-cyan-500/20 text-cyan-300 flex items-center justify-center">
-                        <Waves className="w-4 h-4" />
+                {(goal.swimEnabled ?? true) && (
+                  <div className={`p-2.5 rounded-2xl border backdrop-blur-md transition-all ${themeStyles.checkSwimBg}`}>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <div className="w-6 h-6 rounded-lg bg-cyan-500/20 text-cyan-300 flex items-center justify-center">
+                          <Waves className="w-3.5 h-3.5" />
+                        </div>
+                        <div>
+                          <span className="text-[9px] uppercase font-bold tracking-wider text-cyan-400 block">
+                            Natação • Meta {goal.swimTargetKm}km
+                          </span>
+                          <span className="text-[11px] font-bold text-white">
+                            {isSwimDone ? `+${(swimDistance / 1000).toFixed(1)} km Hoje!` : 'Pendente hoje'}
+                          </span>
+                        </div>
                       </div>
-                      <div>
-                        <span className="text-[10px] uppercase font-bold tracking-wider text-cyan-400 block">
-                          Natação • Meta 45km
-                        </span>
-                        <span className="text-xs font-bold text-white">
-                          {isSwimDone ? `+${(swimDistance / 1000).toFixed(1)} km Hoje!` : 'Pendente hoje'}
-                        </span>
-                      </div>
+                      <span className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-cyan-500 text-slate-950 flex items-center gap-1 shadow-sm">
+                        <Check className="w-3 h-3 stroke-[3]" />
+                        {stats.totalSwimKm.toFixed(1)} / {goal.swimTargetKm}k
+                      </span>
                     </div>
-                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-cyan-500 text-slate-950 flex items-center gap-1 shadow-sm">
-                      <Check className="w-3 h-3 stroke-[3]" />
-                      {stats.totalSwimKm.toFixed(1)} / 45k
-                    </span>
-                  </div>
 
-                  {/* Progress bar inside story */}
-                  <div className="mt-2 h-1.5 w-full bg-black/40 rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-cyan-400 rounded-full"
-                      style={{ width: `${stats.swimProgressPercent}%` }}
-                    />
+                    <div className="mt-1.5 h-1 w-full bg-black/40 rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-cyan-400 rounded-full"
+                        style={{ width: `${stats.swimProgressPercent}%` }}
+                      />
+                    </div>
                   </div>
-                </div>
+                )}
 
                 {/* Gym Check Box */}
-                <div className={`p-3 rounded-2xl border backdrop-blur-md transition-all ${themeStyles.checkGymBg}`}>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <div className="w-7 h-7 rounded-lg bg-rose-500/20 text-rose-300 flex items-center justify-center">
-                        <Dumbbell className="w-4 h-4" />
+                {(goal.gymEnabled ?? true) && (
+                  <div className={`p-2.5 rounded-2xl border backdrop-blur-md transition-all ${themeStyles.checkGymBg}`}>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <div className="w-6 h-6 rounded-lg bg-rose-500/20 text-rose-300 flex items-center justify-center">
+                          <Dumbbell className="w-3.5 h-3.5" />
+                        </div>
+                        <div>
+                          <span className="text-[9px] uppercase font-bold tracking-wider text-rose-400 block">
+                            Academia • Meta {goal.gymWeeklyTargetDays}x/sem
+                          </span>
+                          <span className="text-[11px] font-bold text-white">
+                            {isGymDone ? gymFocus : 'Pendente hoje'}
+                          </span>
+                        </div>
                       </div>
-                      <div>
-                        <span className="text-[10px] uppercase font-bold tracking-wider text-rose-400 block">
-                          Academia • Meta 4x/sem
-                        </span>
-                        <span className="text-xs font-bold text-white">
-                          {isGymDone ? gymFocus : 'Pendente hoje'}
-                        </span>
-                      </div>
+                      <span className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-rose-500 text-slate-950 flex items-center gap-1 shadow-sm">
+                        <Check className="w-3 h-3 stroke-[3]" />
+                        {stats.currentWeekGymCount}/{goal.gymWeeklyTargetDays} Sem
+                      </span>
                     </div>
-                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-500 text-slate-950 flex items-center gap-1 shadow-sm">
-                      <Check className="w-3 h-3 stroke-[3]" />
-                      {stats.currentWeekGymCount}/4 Sem
-                    </span>
-                  </div>
 
-                  {/* 4 Pips in story */}
-                  <div className="mt-2 grid grid-cols-4 gap-1">
-                    {[1, 2, 3, 4].map((step) => (
-                      <div
-                        key={step}
-                        className={`h-1.5 rounded-full ${
-                          stats.currentWeekGymCount >= step ? 'bg-rose-400' : 'bg-black/40'
-                        }`}
-                      />
-                    ))}
+                    <div className="mt-1.5 grid grid-cols-4 gap-1">
+                      {[1, 2, 3, 4].map((step) => (
+                        <div
+                          key={step}
+                          className={`h-1 rounded-full ${
+                            stats.currentWeekGymCount >= step ? 'bg-rose-400' : 'bg-black/40'
+                          }`}
+                        />
+                      ))}
+                    </div>
                   </div>
-                </div>
+                )}
+
+                {/* Bike Check Box */}
+                {(goal.bikeEnabled ?? true) && (
+                  <div className={`p-2.5 rounded-2xl border backdrop-blur-md transition-all ${themeStyles.checkBikeBg}`}>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <div className="w-6 h-6 rounded-lg bg-amber-500/20 text-amber-300 flex items-center justify-center">
+                          <Bike className="w-3.5 h-3.5" />
+                        </div>
+                        <div>
+                          <span className="text-[9px] uppercase font-bold tracking-wider text-amber-400 block">
+                            Ciclismo • Meta {goal.bikeTargetKm}km
+                          </span>
+                          <span className="text-[11px] font-bold text-white">
+                            {isBikeDone ? `+${bikeDistance} km Hoje!` : 'Pendente hoje'}
+                          </span>
+                        </div>
+                      </div>
+                      <span className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-amber-500 text-slate-950 flex items-center gap-1 shadow-sm">
+                        <Check className="w-3 h-3 stroke-[3]" />
+                        {stats.totalBikeKm.toFixed(1)} / {goal.bikeTargetKm}k
+                      </span>
+                    </div>
+
+                    <div className="mt-1.5 h-1 w-full bg-black/40 rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-amber-400 rounded-full"
+                        style={{ width: `${stats.bikeProgressPercent}%` }}
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {/* Corrida Check Box */}
+                {(goal.runEnabled ?? true) && (
+                  <div className={`p-2.5 rounded-2xl border backdrop-blur-md transition-all ${themeStyles.checkRunBg}`}>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <div className="w-6 h-6 rounded-lg bg-emerald-500/20 text-emerald-300 flex items-center justify-center">
+                          <Footprints className="w-3.5 h-3.5" />
+                        </div>
+                        <div>
+                          <span className="text-[9px] uppercase font-bold tracking-wider text-emerald-400 block">
+                            Corrida • Meta {goal.runTargetKm}km
+                          </span>
+                          <span className="text-[11px] font-bold text-white">
+                            {isRunDone ? `+${runDistance} km Hoje!` : 'Pendente hoje'}
+                          </span>
+                        </div>
+                      </div>
+                      <span className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-emerald-500 text-slate-950 flex items-center gap-1 shadow-sm">
+                        <Check className="w-3 h-3 stroke-[3]" />
+                        {stats.totalRunKm.toFixed(1)} / {goal.runTargetKm}k
+                      </span>
+                    </div>
+
+                    <div className="mt-1.5 h-1 w-full bg-black/40 rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-emerald-400 rounded-full"
+                        style={{ width: `${stats.runProgressPercent}%` }}
+                      />
+                    </div>
+                  </div>
+                )}
 
                 {/* Custom Note / Motivation */}
                 {customNote && (
-                  <div className="p-2.5 rounded-xl bg-black/30 border border-white/10 text-center">
-                    <p className="text-[11px] font-medium text-slate-200 italic leading-snug">
+                  <div className="p-2 rounded-xl bg-black/30 border border-white/10 text-center">
+                    <p className="text-[10px] font-medium text-slate-200 italic leading-snug">
                       "{customNote}"
                     </p>
                   </div>

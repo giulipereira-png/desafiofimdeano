@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Check, Waves, Dumbbell, Calendar, Clock, Trash2, Instagram, Sparkles } from 'lucide-react';
+import { X, Check, Waves, Dumbbell, Bike, Footprints, Calendar, Clock, Trash2, Instagram, Sparkles } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { DayLog } from '../types/workout';
 import { formatReadableDateBR, TODAY_STR } from '../utils/statsCalculator';
@@ -25,6 +25,9 @@ const GYM_FOCUS_OPTIONS = [
   'Cardio & Funcional',
 ] as const;
 
+const BIKE_PRESETS = [10, 15, 20, 25, 30, 40, 50];
+const RUN_PRESETS = [3, 5, 8, 10, 12, 15, 21];
+
 export const DayEditModal: React.FC<DayEditModalProps> = ({
   isOpen,
   onClose,
@@ -34,6 +37,7 @@ export const DayEditModal: React.FC<DayEditModalProps> = ({
   onDeleteDayLog,
   onOpenStoryForDate,
 }) => {
+  // Natação
   const [swimCompleted, setSwimCompleted] = useState<boolean>(false);
   const [swimDistance, setSwimDistance] = useState<number>(1500);
   const [swimDuration, setSwimDuration] = useState<number>(45);
@@ -41,11 +45,27 @@ export const DayEditModal: React.FC<DayEditModalProps> = ({
   const [swimStyle, setSwimStyle] = useState<string>('Livre / Crawl');
   const [swimNotes, setSwimNotes] = useState<string>('');
 
+  // Academia
   const [gymCompleted, setGymCompleted] = useState<boolean>(false);
   const [gymFocus, setGymFocus] = useState<string>('Inferior / Pernas');
   const [gymDuration, setGymDuration] = useState<number>(55);
   const [gymIntensity, setGymIntensity] = useState<'Leve' | 'Moderado' | 'Intenso' | 'Muito Intenso'>('Intenso');
   const [gymNotes, setGymNotes] = useState<string>('');
+
+  // Ciclismo / Bike
+  const [bikeCompleted, setBikeCompleted] = useState<boolean>(false);
+  const [bikeDistance, setBikeDistance] = useState<number>(20);
+  const [bikeDuration, setBikeDuration] = useState<number>(50);
+  const [bikeType, setBikeType] = useState<'Estrada / Speed' | 'MTB / Trilha' | 'Spinning / Rolo' | 'Urbana / Passeio'>('Estrada / Speed');
+  const [bikeNotes, setBikeNotes] = useState<string>('');
+
+  // Corrida
+  const [runCompleted, setRunCompleted] = useState<boolean>(false);
+  const [runDistance, setRunDistance] = useState<number>(5);
+  const [runDuration, setRunDuration] = useState<number>(30);
+  const [runTerrain, setRunTerrain] = useState<'Rua / Asfalto' | 'Esteira' | 'Pista' | 'Trail / Montanha'>('Rua / Asfalto');
+  const [runPace, setRunPace] = useState<string>('5:30/km');
+  const [runNotes, setRunNotes] = useState<string>('');
 
   const [feeling, setFeeling] = useState<string>('🔥 Excelente');
 
@@ -64,6 +84,19 @@ export const DayEditModal: React.FC<DayEditModalProps> = ({
       setGymIntensity(existingLog.gym?.intensity || 'Intenso');
       setGymNotes(existingLog.gym?.notes || '');
 
+      setBikeCompleted(Boolean(existingLog.bikeCompleted));
+      setBikeDistance(existingLog.bike?.distanceKm || 20);
+      setBikeDuration(existingLog.bike?.durationMinutes || 50);
+      setBikeType(existingLog.bike?.bikeType || 'Estrada / Speed');
+      setBikeNotes(existingLog.bike?.notes || '');
+
+      setRunCompleted(Boolean(existingLog.runCompleted));
+      setRunDistance(existingLog.run?.distanceKm || 5);
+      setRunDuration(existingLog.run?.durationMinutes || 30);
+      setRunTerrain(existingLog.run?.terrain || 'Rua / Asfalto');
+      setRunPace(existingLog.run?.paceAvg || '5:30/km');
+      setRunNotes(existingLog.run?.notes || '');
+
       setFeeling(existingLog.feeling || '🔥 Excelente');
     } else {
       setSwimCompleted(false);
@@ -78,6 +111,19 @@ export const DayEditModal: React.FC<DayEditModalProps> = ({
       setGymDuration(55);
       setGymIntensity('Intenso');
       setGymNotes('');
+
+      setBikeCompleted(false);
+      setBikeDistance(20);
+      setBikeDuration(50);
+      setBikeType('Estrada / Speed');
+      setBikeNotes('');
+
+      setRunCompleted(false);
+      setRunDistance(5);
+      setRunDuration(30);
+      setRunTerrain('Rua / Asfalto');
+      setRunPace('5:30/km');
+      setRunNotes('');
 
       setFeeling('🔥 Excelente');
     }
@@ -107,13 +153,32 @@ export const DayEditModal: React.FC<DayEditModalProps> = ({
             notes: gymNotes,
           }
         : undefined,
+      bikeCompleted,
+      bike: bikeCompleted
+        ? {
+            distanceKm: bikeDistance,
+            durationMinutes: bikeDuration,
+            bikeType,
+            notes: bikeNotes,
+          }
+        : undefined,
+      runCompleted,
+      run: runCompleted
+        ? {
+            distanceKm: runDistance,
+            durationMinutes: runDuration,
+            terrain: runTerrain,
+            paceAvg: runPace,
+            notes: runNotes,
+          }
+        : undefined,
       feeling: feeling as any,
       updatedAt: new Date().toISOString(),
     };
 
     onSaveDayLog(updated);
 
-    if (swimCompleted || gymCompleted) {
+    if (swimCompleted || gymCompleted || bikeCompleted || runCompleted) {
       confetti({
         particleCount: 70,
         spread: 60,
@@ -153,13 +218,13 @@ export const DayEditModal: React.FC<DayEditModalProps> = ({
                 )}
               </div>
               <p className="text-xs text-slate-400">
-                Marque e detalhe seus treinos de natação e musculação
+                Marque e detalhe seus treinos de natação, academia, bike e corrida
               </p>
             </div>
           </div>
 
           <div className="flex items-center gap-2">
-            {(swimCompleted || gymCompleted) && (
+            {(swimCompleted || gymCompleted || bikeCompleted || runCompleted) && (
               <button
                 onClick={() => {
                   onClose();
@@ -381,7 +446,227 @@ export const DayEditModal: React.FC<DayEditModalProps> = ({
             )}
           </div>
 
-          {/* SECTION 3: Percepção / Como se sentiu */}
+          {/* SECTION 3: CICLISMO / BIKE */}
+          <div className={`p-4 rounded-xl border transition-all ${
+            bikeCompleted ? 'bg-amber-950/40 border-amber-500/40' : 'bg-slate-900/50 border-slate-800'
+          }`}>
+            <div className="flex items-center justify-between pb-3 border-b border-slate-800/80">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-amber-500/20 text-amber-400 flex items-center justify-center">
+                  <Bike className="w-4 h-4" />
+                </div>
+                <div>
+                  <h4 className="text-sm font-bold text-white">Ciclismo / Bike</h4>
+                  <span className="text-[11px] text-amber-400">Contabiliza quilômetros de pedal</span>
+                </div>
+              </div>
+
+              <label className="flex items-center gap-2 text-xs font-bold text-slate-200 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={bikeCompleted}
+                  onChange={(e) => setBikeCompleted(e.target.checked)}
+                  className="w-4 h-4 rounded bg-slate-900 border-slate-700 text-amber-500 focus:ring-0 cursor-pointer"
+                />
+                <span>Pedal Feito ✅</span>
+              </label>
+            </div>
+
+            {bikeCompleted && (
+              <div className="mt-4 space-y-3.5">
+                {/* Distance */}
+                <div>
+                  <label className="text-xs font-semibold text-slate-300 block mb-1.5">
+                    Distância Pedalada: <strong className="text-amber-300">{bikeDistance} km</strong>
+                  </label>
+                  
+                  {/* Presets */}
+                  <div className="flex flex-wrap gap-1.5 mb-2">
+                    {BIKE_PRESETS.map((k) => (
+                      <button
+                        key={k}
+                        type="button"
+                        onClick={() => setBikeDistance(k)}
+                        className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-colors cursor-pointer ${
+                          bikeDistance === k
+                            ? 'bg-amber-500 text-slate-950 font-bold'
+                            : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+                        }`}
+                      >
+                        {k} km
+                      </button>
+                    ))}
+                  </div>
+
+                  <input
+                    type="number"
+                    step="0.5"
+                    min="1"
+                    max="500"
+                    value={bikeDistance}
+                    onChange={(e) => setBikeDistance(Number(e.target.value))}
+                    className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-white text-xs focus:border-amber-400 focus:outline-none"
+                    placeholder="Distância em km (ex: 25)"
+                  />
+                </div>
+
+                {/* Duration & Bike Type */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-xs text-slate-400 block mb-1">Duração (min)</label>
+                    <input
+                      type="number"
+                      value={bikeDuration}
+                      onChange={(e) => setBikeDuration(Number(e.target.value))}
+                      className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-white text-xs focus:border-amber-400 focus:outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs text-slate-400 block mb-1">Tipo de Bike</label>
+                    <select
+                      value={bikeType}
+                      onChange={(e) => setBikeType(e.target.value as any)}
+                      className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-white text-xs focus:border-amber-400 focus:outline-none"
+                    >
+                      <option value="Estrada / Speed">Estrada / Speed</option>
+                      <option value="MTB / Trilha">MTB / Trilha</option>
+                      <option value="Spinning / Rolo">Spinning / Rolo</option>
+                      <option value="Urbana / Passeio">Urbana / Passeio</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* Bike Notes */}
+                <div>
+                  <label className="text-xs text-slate-400 block mb-1">Observações do Pedal</label>
+                  <input
+                    type="text"
+                    value={bikeNotes}
+                    onChange={(e) => setBikeNotes(e.target.value)}
+                    placeholder="Ex: Treino intervalado de subida, cadência média 85..."
+                    className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-white text-xs focus:border-amber-400 focus:outline-none"
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* SECTION 4: CORRIDA */}
+          <div className={`p-4 rounded-xl border transition-all ${
+            runCompleted ? 'bg-emerald-950/40 border-emerald-500/40' : 'bg-slate-900/50 border-slate-800'
+          }`}>
+            <div className="flex items-center justify-between pb-3 border-b border-slate-800/80">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center">
+                  <Footprints className="w-4 h-4" />
+                </div>
+                <div>
+                  <h4 className="text-sm font-bold text-white">Corrida / Running</h4>
+                  <span className="text-[11px] text-emerald-400">Contabiliza quilômetros de corrida</span>
+                </div>
+              </div>
+
+              <label className="flex items-center gap-2 text-xs font-bold text-slate-200 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={runCompleted}
+                  onChange={(e) => setRunCompleted(e.target.checked)}
+                  className="w-4 h-4 rounded bg-slate-900 border-slate-700 text-emerald-500 focus:ring-0 cursor-pointer"
+                />
+                <span>Corrida Feita ✅</span>
+              </label>
+            </div>
+
+            {runCompleted && (
+              <div className="mt-4 space-y-3.5">
+                {/* Distance */}
+                <div>
+                  <label className="text-xs font-semibold text-slate-300 block mb-1.5">
+                    Distância Corrida: <strong className="text-emerald-300">{runDistance} km</strong>
+                  </label>
+                  
+                  {/* Presets */}
+                  <div className="flex flex-wrap gap-1.5 mb-2">
+                    {RUN_PRESETS.map((k) => (
+                      <button
+                        key={k}
+                        type="button"
+                        onClick={() => setRunDistance(k)}
+                        className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-colors cursor-pointer ${
+                          runDistance === k
+                            ? 'bg-emerald-500 text-slate-950 font-bold'
+                            : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+                        }`}
+                      >
+                        {k} km
+                      </button>
+                    ))}
+                  </div>
+
+                  <input
+                    type="number"
+                    step="0.5"
+                    min="0.5"
+                    max="100"
+                    value={runDistance}
+                    onChange={(e) => setRunDistance(Number(e.target.value))}
+                    className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-white text-xs focus:border-emerald-400 focus:outline-none"
+                    placeholder="Distância em km (ex: 5)"
+                  />
+                </div>
+
+                {/* Duration, Pace & Terrain */}
+                <div className="grid grid-cols-3 gap-2.5">
+                  <div>
+                    <label className="text-xs text-slate-400 block mb-1">Duração (min)</label>
+                    <input
+                      type="number"
+                      value={runDuration}
+                      onChange={(e) => setRunDuration(Number(e.target.value))}
+                      className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-white text-xs focus:border-emerald-400 focus:outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs text-slate-400 block mb-1">Pace Médio</label>
+                    <input
+                      type="text"
+                      value={runPace}
+                      onChange={(e) => setRunPace(e.target.value)}
+                      placeholder="Ex: 5:20/km"
+                      className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-white text-xs focus:border-emerald-400 focus:outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs text-slate-400 block mb-1">Terreno</label>
+                    <select
+                      value={runTerrain}
+                      onChange={(e) => setRunTerrain(e.target.value as any)}
+                      className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-white text-xs focus:border-emerald-400 focus:outline-none"
+                    >
+                      <option value="Rua / Asfalto">Rua / Asfalto</option>
+                      <option value="Esteira">Esteira</option>
+                      <option value="Pista">Pista</option>
+                      <option value="Trail / Montanha">Trail / Montanha</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* Run Notes */}
+                <div>
+                  <label className="text-xs text-slate-400 block mb-1">Observações da Corrida</label>
+                  <input
+                    type="text"
+                    value={runNotes}
+                    onChange={(e) => setRunNotes(e.target.value)}
+                    placeholder="Ex: Fartlek progressivo, ótima sensação de respiração..."
+                    className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-white text-xs focus:border-emerald-400 focus:outline-none"
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* SECTION 5: Percepção / Como se sentiu */}
           <div>
             <label className="text-xs font-semibold text-slate-300 block mb-1.5">
               Sensação do Dia:

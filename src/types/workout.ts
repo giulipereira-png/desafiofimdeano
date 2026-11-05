@@ -1,4 +1,4 @@
-export type WorkoutType = 'natacao' | 'academia';
+export type WorkoutType = 'natacao' | 'academia' | 'bike' | 'corrida';
 
 export interface SwimDetail {
   distanceMeters: number; // e.g. 1500
@@ -15,25 +15,59 @@ export interface GymDetail {
   notes?: string;
 }
 
+export interface BikeDetail {
+  distanceKm: number;
+  durationMinutes?: number;
+  elevationMeters?: number;
+  bikeType?: 'Estrada / Speed' | 'MTB / Trilha' | 'Spinning / Rolo' | 'Urbana / Passeio';
+  notes?: string;
+}
+
+export interface RunDetail {
+  distanceKm: number;
+  durationMinutes?: number;
+  paceAvg?: string;
+  terrain?: 'Rua / Asfalto' | 'Esteira' | 'Pista' | 'Trail / Montanha';
+  notes?: string;
+}
+
 export interface DayLog {
   date: string; // YYYY-MM-DD
-  swimCompleted: boolean;
+  userId?: string;
+  swimCompleted?: boolean;
   swim?: SwimDetail;
-  gymCompleted: boolean;
+  gymCompleted?: boolean;
   gym?: GymDetail;
+  bikeCompleted?: boolean;
+  bike?: BikeDetail;
+  runCompleted?: boolean;
+  run?: RunDetail;
   feeling?: '🔥 Excelente' | '💪 Firme' | '😴 Cansada mas feito' | '⚡ Recuperação';
-  photoUrl?: string;
   notes?: string;
   updatedAt: string;
 }
 
 export interface GoalConfig {
-  swimTargetKm: number; // 45km
-  gymWeeklyTargetDays: number; // 4 days/week
+  userName: string;
+  userHandle: string;
   targetEndDate: string; // "2026-12-31"
   startDate: string; // "2026-09-01"
-  userHandle: string; // "@prof_giu"
-  userName: string; // "Prof. Giu"
+
+  // Sport 1: Natação
+  swimEnabled: boolean;
+  swimTargetKm: number;
+
+  // Sport 2: Academia
+  gymEnabled: boolean;
+  gymWeeklyTargetDays: number;
+
+  // Sport 3: Bike / Ciclismo
+  bikeEnabled: boolean;
+  bikeTargetKm: number;
+
+  // Sport 4: Corrida
+  runEnabled: boolean;
+  runTargetKm: number;
 }
 
 export interface WeekSummary {
@@ -44,7 +78,11 @@ export interface WeekSummary {
   swimKm: number;
   swimSessions: number;
   gymSessions: number;
-  gymTargetMet: boolean; // >= 4
+  gymTargetMet: boolean;
+  bikeKm: number;
+  bikeSessions: number;
+  runKm: number;
+  runSessions: number;
   totalActiveMinutes: number;
   daysCompletedCount: number;
 }

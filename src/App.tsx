@@ -11,7 +11,9 @@ import {
   Flag,
   Flame,
   CheckCircle2,
-  Clock
+  Clock,
+  Share2,
+  Sliders
 } from 'lucide-react';
 import { Header } from './components/Header';
 import { GoalOverview } from './components/GoalOverview';
@@ -22,6 +24,8 @@ import { InstagramStoryModal } from './components/InstagramStoryModal';
 import { ExportPdfModal } from './components/ExportPdfModal';
 import { SyncBackupModal } from './components/SyncBackupModal';
 import { DayEditModal } from './components/DayEditModal';
+import { GoalSettingsModal } from './components/GoalSettingsModal';
+import { ShareAppModal } from './components/ShareAppModal';
 
 import { DayLog, GoalConfig } from './types/workout';
 import { loadLogs, saveLogs, loadGoal, saveGoal, resetToDefaults } from './utils/storage';
@@ -53,6 +57,8 @@ export default function App() {
   const [isPdfModalOpen, setIsPdfModalOpen] = useState<boolean>(false);
   const [isSyncModalOpen, setIsSyncModalOpen] = useState<boolean>(false);
   const [isDayEditModalOpen, setIsDayEditModalOpen] = useState<boolean>(false);
+  const [isGoalSettingsModalOpen, setIsGoalSettingsModalOpen] = useState<boolean>(false);
+  const [isShareModalOpen, setIsShareModalOpen] = useState<boolean>(false);
   const [modalDateStr, setModalDateStr] = useState<string>(TODAY_STR);
 
   // Test Firebase connection on mount
@@ -87,7 +93,7 @@ export default function App() {
     const unsubGoal = subscribeToUserGoal(currentUser.uid, (cloudGoal) => {
       if (cloudGoal && Object.keys(cloudGoal).length > 0) {
         setGoal((prev) => {
-          const merged = { ...prev, ...cloudGoal, userName: 'Giu Sousa' };
+          const merged = { ...prev, ...cloudGoal, userName: cloudGoal.userName || prev.userName || 'Giu Sousa' };
           saveGoal(merged);
           return merged;
         });
@@ -128,7 +134,7 @@ export default function App() {
 
   const stats = calculateStats(logs, goal, TODAY_STR);
 
-  // Quick 1-tap toggle handlers
+  // Quick 1-tap toggle handlers (preserving all sports)
   const handleToggleSwim = (date: string, distanceMeters: number = 1500) => {
     setLogs((prev) => {
       const existing = prev[date];
@@ -147,6 +153,10 @@ export default function App() {
           : undefined,
         gymCompleted: Boolean(existing?.gymCompleted),
         gym: existing?.gym,
+        bikeCompleted: Boolean(existing?.bikeCompleted),
+        bike: existing?.bike,
+        runCompleted: Boolean(existing?.runCompleted),
+        run: existing?.run,
         feeling: existing?.feeling || '🔥 Excelente',
         updatedAt: new Date().toISOString(),
       };
@@ -176,6 +186,10 @@ export default function App() {
               intensity: existing?.gym?.intensity || 'Intenso',
             }
           : undefined,
+        bikeCompleted: Boolean(existing?.bikeCompleted),
+        bike: existing?.bike,
+        runCompleted: Boolean(existing?.runCompleted),
+        run: existing?.run,
         feeling: existing?.feeling || '💪 Firme',
         updatedAt: new Date().toISOString(),
       };
@@ -186,6 +200,81 @@ export default function App() {
 
       return { ...prev, [date]: updated };
     });
+  };
+
+  const handleToggleBike = (date: string, distanceKm: number = 20) => {
+    setLogs((prev) => {
+      const existing = prev[date];
+      const willComplete = !existing?.bikeCompleted;
+
+      const updated: DayLog = {
+        date,
+        swimCompleted: Boolean(existing?.swimCompleted),
+        swim: existing?.swim,
+        gymCompleted: Boolean(existing?.gymCompleted),
+        gym: existing?.gym,
+        bikeCompleted: willComplete,
+        bike: willComplete
+          ? {
+              distanceKm: existing?.bike?.distanceKm || distanceKm,
+              durationMinutes: existing?.bike?.durationMinutes || 50,
+              bikeType: existing?.bike?.bikeType || 'Estrada / Speed',
+            }
+          : undefined,
+        runCompleted: Boolean(existing?.runCompleted),
+        run: existing?.run,
+        feeling: existing?.feeling || '🔥 Excelente',
+        updatedAt: new Date().toISOString(),
+      };
+
+      if (currentUser) {
+        syncWorkoutToCloud(currentUser.uid, updated).catch(console.error);
+      }
+
+      return { ...prev, [date]: updated };
+    });
+  };
+
+  const handleToggleRun = (date: string, distanceKm: number = 5) => {
+    setLogs((prev) => {
+      const existing = prev[date];
+      const willComplete = !existing?.runCompleted;
+
+      const updated: DayLog = {
+        date,
+        swimCompleted: Boolean(existing?.swimCompleted),
+        swim: existing?.swim,
+        gymCompleted: Boolean(existing?.gymCompleted),
+        gym: existing?.gym,
+        bikeCompleted: Boolean(existing?.bikeCompleted),
+        bike: existing?.bike,
+        runCompleted: willComplete,
+        run: willComplete
+          ? {
+              distanceKm: existing?.run?.distanceKm || distanceKm,
+              durationMinutes: existing?.run?.durationMinutes || 30,
+              terrain: existing?.run?.terrain || 'Rua / Asfalto',
+              paceAvg: existing?.run?.paceAvg || '5:30/km',
+            }
+          : undefined,
+        feeling: existing?.feeling || '💪 Firme',
+        updatedAt: new Date().toISOString(),
+      };
+
+      if (currentUser) {
+        syncWorkoutToCloud(currentUser.uid, updated).catch(console.error);
+      }
+
+      return { ...prev, [date]: updated };
+    });
+  };
+
+  const handleSaveGoal = (newGoal: GoalConfig) => {
+    setGoal(newGoal);
+    saveGoal(newGoal);
+    if (currentUser) {
+      syncGoalToCloud(currentUser.uid, newGoal).catch(console.error);
+    }
   };
 
   const handleSaveDayLog = (newLog: DayLog) => {
@@ -243,6 +332,8 @@ export default function App() {
         }}
         onOpenPdfModal={() => setIsPdfModalOpen(true)}
         onOpenSyncModal={() => setIsSyncModalOpen(true)}
+        onOpenGoalSettings={() => setIsGoalSettingsModalOpen(true)}
+        onOpenShareModal={() => setIsShareModalOpen(true)}
         onResetData={handleResetData}
       />
 
@@ -258,14 +349,19 @@ export default function App() {
             <div>
               <div className="flex items-center gap-2">
                 <span className="text-xs uppercase tracking-wider font-bold text-amber-400">
-                  Meta Individual até 31/12/2026
+                  Meta Individual até {goal.targetEndDate || '31/12/2026'}
                 </span>
                 <span className="text-[11px] px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 font-semibold border border-slate-700">
-                  Desafio Pessoal
+                  Desafio Pessoal • 01/11 a 31/12/2026
                 </span>
               </div>
               <h2 className="text-base sm:text-lg font-bold text-white tracking-tight mt-0.5">
-                45km de Natação + Academia Mínimo 4x por Semana
+                {[
+                  goal.swimEnabled && `${goal.swimTargetKm}km Natação`,
+                  goal.gymEnabled && `Academia ${goal.gymWeeklyTargetDays}x/sem`,
+                  goal.bikeEnabled && `${goal.bikeTargetKm}km Bike`,
+                  goal.runEnabled && `${goal.runTargetKm}km Corrida`,
+                ].filter(Boolean).join(' • ') || 'Constância e Metas Pessoais'}
               </h2>
             </div>
           </div>
@@ -292,30 +388,31 @@ export default function App() {
             </div>
 
             <button
-              onClick={() => setIsSyncModalOpen(true)}
-              className="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold border border-slate-700 transition-all flex items-center gap-1.5 cursor-pointer"
+              onClick={() => setIsShareModalOpen(true)}
+              className="px-3.5 py-2 rounded-xl bg-cyan-500/15 hover:bg-cyan-500/25 text-cyan-300 font-semibold border border-cyan-500/30 transition-all flex items-center gap-1.5 cursor-pointer"
             >
-              <HardDrive className="w-3.5 h-3.5 text-cyan-400" />
-              <span>Backup / Sincronizar</span>
+              <Share2 className="w-3.5 h-3.5 text-cyan-400" />
+              <span>Compartilhar App</span>
             </button>
           </div>
         </div>
 
-        {/* Primary Goals Dashboard: Swimming 45km + Gym 4x/week */}
+        {/* Primary Goals Dashboard */}
         <GoalOverview
           stats={stats}
-          onOpenStoryModal={() => {
-            setModalDateStr(selectedDateStr);
-            setIsStoryModalOpen(true);
-          }}
+          goal={goal}
+          onOpenGoalSettings={() => setIsGoalSettingsModalOpen(true)}
         />
 
         {/* Quick Check-in Bar for Today / Selected Date */}
         <QuickCheckinBar
           currentDateStr={selectedDateStr}
           dayLog={logs[selectedDateStr]}
+          goal={goal}
           onToggleSwim={handleToggleSwim}
           onToggleGym={handleToggleGym}
+          onToggleBike={handleToggleBike}
+          onToggleRun={handleToggleRun}
           onOpenDayDetails={handleOpenDayDetails}
           onOpenStoryModal={() => {
             setModalDateStr(selectedDateStr);
@@ -473,6 +570,21 @@ export default function App() {
         onSaveDayLog={handleSaveDayLog}
         onDeleteDayLog={handleDeleteDayLog}
         onOpenStoryForDate={handleOpenStoryForDate}
+      />
+
+      {/* 5. Personalize Goals & Sports Modal */}
+      <GoalSettingsModal
+        isOpen={isGoalSettingsModalOpen}
+        onClose={() => setIsGoalSettingsModalOpen(false)}
+        goal={goal}
+        onSaveGoal={handleSaveGoal}
+      />
+
+      {/* 6. Share App Modal */}
+      <ShareAppModal
+        isOpen={isShareModalOpen}
+        onClose={() => setIsShareModalOpen(false)}
+        userHandle={goal.userHandle}
       />
 
     </div>

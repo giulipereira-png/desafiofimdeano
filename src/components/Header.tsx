@@ -1,5 +1,5 @@
 import React from 'react';
-import { Instagram, FileText, Sparkles, Target, RotateCcw, HardDrive } from 'lucide-react';
+import { Instagram, FileText, Sparkles, Target, RotateCcw, HardDrive, Sliders, Share2 } from 'lucide-react';
 import { User } from 'firebase/auth';
 import { CalculatedStats } from '../utils/statsCalculator';
 import { GoalConfig } from '../types/workout';
@@ -11,6 +11,8 @@ interface HeaderProps {
   onOpenStoryModal: () => void;
   onOpenPdfModal: () => void;
   onOpenSyncModal: () => void;
+  onOpenGoalSettings: () => void;
+  onOpenShareModal: () => void;
   onResetData: () => void;
 }
 
@@ -21,8 +23,20 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenStoryModal,
   onOpenPdfModal,
   onOpenSyncModal,
+  onOpenGoalSettings,
+  onOpenShareModal,
   onResetData,
 }) => {
+  const initials = goal.userName
+    ? goal.userName
+        .split(' ')
+        .filter(Boolean)
+        .map((n) => n[0])
+        .join('')
+        .slice(0, 2)
+        .toUpperCase()
+    : 'GS';
+
   return (
     <header className="border-b border-slate-800/80 bg-slate-950/80 backdrop-blur-md sticky top-0 z-40">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5 sm:py-4">
@@ -30,11 +44,11 @@ export const Header: React.FC<HeaderProps> = ({
           
           {/* Profile & Identity */}
           <div className="flex items-center gap-3.5">
-            <div className="relative group">
+            <div className="relative group cursor-pointer" onClick={onOpenGoalSettings} title="Editar perfil e metas">
               <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-cyan-500 via-indigo-500 to-rose-500 p-[2px] shadow-lg shadow-cyan-500/10">
                 <div className="w-full h-full bg-slate-900 rounded-[14px] flex items-center justify-center overflow-hidden">
-                  <span className="text-xl font-bold bg-gradient-to-r from-cyan-300 to-rose-300 bg-clip-text text-transparent">
-                    GS
+                  <span className="text-lg font-bold bg-gradient-to-r from-cyan-300 to-rose-300 bg-clip-text text-transparent">
+                    {initials}
                   </span>
                 </div>
               </div>
@@ -61,9 +75,9 @@ export const Header: React.FC<HeaderProps> = ({
               <div className="flex items-center gap-2 text-xs text-slate-400 mt-0.5">
                 <span className="inline-flex items-center gap-1 text-slate-300">
                   <Target className="w-3.5 h-3.5 text-rose-400" />
-                  Meta Individual 2026:
+                  Meta Individual:
                 </span>
-                <span className="text-slate-300 font-medium">31 Dez 2026</span>
+                <span className="text-slate-300 font-medium">{goal.targetEndDate || '31 Dez 2026'}</span>
                 <span className="text-slate-600">•</span>
                 <span className="text-cyan-400 font-semibold">{stats.daysRemainingToGoal} dias restantes</span>
               </div>
@@ -89,17 +103,37 @@ export const Header: React.FC<HeaderProps> = ({
               title="Exportar Relatório em PDF para análise"
             >
               <FileText className="w-4 h-4 text-cyan-400" />
-              <span>Exportar PDF</span>
+              <span>PDF</span>
+            </button>
+
+            {/* Personalizar Metas */}
+            <button
+              onClick={onOpenGoalSettings}
+              className="flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-medium bg-slate-900/80 hover:bg-slate-800 text-slate-300 border border-slate-800 active:scale-95 transition-all cursor-pointer"
+              title="Personalizar nome, metas e esportes ativos"
+            >
+              <Sliders className="w-4 h-4 text-amber-400" />
+              <span className="hidden sm:inline">Metas</span>
+            </button>
+
+            {/* Compartilhar App */}
+            <button
+              onClick={onOpenShareModal}
+              className="flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-medium bg-slate-900/80 hover:bg-slate-800 text-slate-300 border border-slate-800 active:scale-95 transition-all cursor-pointer"
+              title="Compartilhar app para amigos criarem suas metas"
+            >
+              <Share2 className="w-4 h-4 text-cyan-400" />
+              <span className="hidden sm:inline">Compartilhar</span>
             </button>
 
             {/* Backup & Sync */}
             <button
               onClick={onOpenSyncModal}
               className="flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-medium bg-slate-900/80 hover:bg-slate-800 text-slate-300 border border-slate-800 active:scale-95 transition-all cursor-pointer"
-              title="Sincronizar e fazer backup dos treinos"
+              title="Sincronizar e fazer backup dos treinos na nuvem"
             >
               <HardDrive className="w-4 h-4 text-indigo-400" />
-              <span>Sincronizar / Backup</span>
+              <span className="hidden md:inline">Nuvem</span>
             </button>
 
             {/* Reset data helper */}

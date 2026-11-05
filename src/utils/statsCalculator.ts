@@ -30,7 +30,7 @@ export function formatReadableDateBR(dateStr: string, includeDayOfWeek: boolean 
 export function getMondayOfWeek(dateStr: string): string {
   const date = parseISODate(dateStr);
   const day = date.getDay(); // 0 is Sunday, 1 is Monday
-  const diff = date.getDate() - day + (day === 0 ? -6 : 1); // adjust when day is sunday
+  const diff = date.getDate() - day + (day === 0 ? -6 : 1);
   const monday = new Date(date.setDate(diff));
   return formatISODate(monday);
 }
@@ -61,7 +61,7 @@ export interface CalculatedStats {
   swimRemainingKm: number;
   totalSwimSessions: number;
   swimAvgKmPerSession: number;
-  swimRequiredWeeklyKm: number; // to hit 45km by Dec 31, 2026
+  swimRequiredWeeklyKm: number;
   swimPaceStatus: 'Adiantada! 🚀' | 'No Ritmo Certo! 🎯' | 'Acelerar um pouco! ⚡';
 
   // Gym Stats
@@ -71,9 +71,25 @@ export interface CalculatedStats {
   currentWeekGymPercent: number;
   gymWeeksMetCount: number;
   totalWeeksEvaluated: number;
-  gymConsistencyRate: number; // percentage
+  gymConsistencyRate: number;
   currentGymWeekStreak: number;
   longestGymWeekStreak: number;
+
+  // Bike Stats
+  totalBikeKm: number;
+  bikeTargetKm: number;
+  bikeProgressPercent: number;
+  bikeRemainingKm: number;
+  totalBikeSessions: number;
+  bikeRequiredWeeklyKm: number;
+
+  // Run Stats
+  totalRunKm: number;
+  runTargetKm: number;
+  runProgressPercent: number;
+  runRemainingKm: number;
+  totalRunSessions: number;
+  runRequiredWeeklyKm: number;
 
   // Global / Target Countdown
   targetEndDate: string;
@@ -87,6 +103,8 @@ export interface CalculatedStats {
   // Today specific
   isTodaySwimDone: boolean;
   isTodayGymDone: boolean;
+  isTodayBikeDone: boolean;
+  isTodayRunDone: boolean;
   todayLog?: DayLog;
 }
 
@@ -97,10 +115,13 @@ export function calculateStats(
 ): CalculatedStats {
   const logEntries = Object.values(logs).sort((a, b) => a.date.localeCompare(b.date));
 
-  // 1. Swim calculations
   let totalSwimMeters = 0;
   let totalSwimSessions = 0;
   let totalGymSessions = 0;
+  let totalBikeKm = 0;
+  let totalBikeSessions = 0;
+  let totalRunKm = 0;
+  let totalRunSessions = 0;
   let totalActiveMinutes = 0;
 
   logEntries.forEach((log) => {
@@ -114,35 +135,57 @@ export function calculateStats(
       totalGymSessions += 1;
       totalActiveMinutes += log.gym?.durationMinutes || 50;
     }
+    if (log.bikeCompleted) {
+      totalBikeSessions += 1;
+      const km = log.bike?.distanceKm || 0;
+      totalBikeKm += km;
+      totalActiveMinutes += log.bike?.durationMinutes || 60;
+    }
+    if (log.runCompleted) {
+      totalRunSessions += 1;
+      const km = log.run?.distanceKm || 0;
+      totalRunKm += km;
+      totalActiveMinutes += log.run?.durationMinutes || 40;
+    }
   });
 
-  const totalSwimKm = Math.round((totalSwimMeters / 1000) * 10) / 10;
-  const swimTargetKm = goal.swimTargetKm;
-  const swimProgressPercent = Math.min(100, Math.round((totalSwimKm / swimTargetKm) * 1000) / 10);
-  const swimRemainingKm = Math.max(0, Math.round((swimTargetKm - totalSwimKm) * 10) / 10);
-  const swimAvgKmPerSession = totalSwimSessions > 0 
-    ? Math.round((totalSwimKm / totalSwimSessions) * 100) / 100 
-    : 0;
-
-  // Countdown calculations to 2026-12-31
+  // Countdown calculations
   const today = parseISODate(currentDateStr);
-  const targetDate = parseISODate(goal.targetEndDate);
+  const targetDate = parseISODate(goal.targetEndDate || '2026-12-31');
   const diffTime = targetDate.getTime() - today.getTime();
   const daysRemainingToGoal = Math.max(0, Math.ceil(diffTime / (1000 * 60 * 60 * 24)));
   const weeksRemainingToGoal = Math.max(1, Math.ceil(daysRemainingToGoal / 7));
 
+  // Swim
+  const totalSwimKm = Math.round((totalSwimMeters / 1000) * 10) / 10;
+  const swimTargetKm = goal.swimTargetKm || 45;
+  const swimProgressPercent = Math.min(100, Math.round((totalSwimKm / swimTargetKm) * 1000) / 10);
+  const swimRemainingKm = Math.max(0, Math.round((swimTargetKm - totalSwimKm) * 10) / 10);
+  const swimAvgKmPerSession = totalSwimSessions > 0 ? Math.round((totalSwimKm / totalSwimSessions) * 100) / 100 : 0;
   const swimRequiredWeeklyKm = Math.round((swimRemainingKm / weeksRemainingToGoal) * 10) / 10;
 
   let swimPaceStatus: 'Adiantada! 🚀' | 'No Ritmo Certo! 🎯' | 'Acelerar um pouco! ⚡' = 'No Ritmo Certo! 🎯';
-  // If remaining km is 0 or low compared to remaining weeks
-  if (swimRemainingKm === 0 || totalSwimKm >= (swimTargetKm * 0.75)) {
+  if (swimRemainingKm === 0 || totalSwimKm >= swimTargetKm * 0.75) {
     swimPaceStatus = 'Adiantada! 🚀';
   } else if (swimRequiredWeeklyKm > 3.0) {
     swimPaceStatus = 'Acelerar um pouco! ⚡';
   }
 
-  // 2. Weekly Gym evaluation
-  // Group logs by week Monday
+  // Bike
+  totalBikeKm = Math.round(totalBikeKm * 10) / 10;
+  const bikeTargetKm = goal.bikeTargetKm || 150;
+  const bikeProgressPercent = Math.min(100, Math.round((totalBikeKm / bikeTargetKm) * 1000) / 10);
+  const bikeRemainingKm = Math.max(0, Math.round((bikeTargetKm - totalBikeKm) * 10) / 10);
+  const bikeRequiredWeeklyKm = Math.round((bikeRemainingKm / weeksRemainingToGoal) * 10) / 10;
+
+  // Run
+  totalRunKm = Math.round(totalRunKm * 10) / 10;
+  const runTargetKm = goal.runTargetKm || 80;
+  const runProgressPercent = Math.min(100, Math.round((totalRunKm / runTargetKm) * 1000) / 10);
+  const runRemainingKm = Math.max(0, Math.round((runTargetKm - totalRunKm) * 10) / 10);
+  const runRequiredWeeklyKm = Math.round((runRemainingKm / weeksRemainingToGoal) * 10) / 10;
+
+  // Weekly Gym evaluation
   const weeklyMap = groupLogsByWeek(logs);
   const weeks = Object.values(weeklyMap).sort((a, b) => a.weekStart.localeCompare(b.weekStart));
 
@@ -154,27 +197,17 @@ export function calculateStats(
   const currentMonday = getMondayOfWeek(currentDateStr);
   const currentWeekLog = weeklyMap[currentMonday];
   const currentWeekGymCount = currentWeekLog ? currentWeekLog.gymSessions : 0;
-  const currentWeekGymPercent = Math.min(100, Math.round((currentWeekGymCount / goal.gymWeeklyTargetDays) * 100));
+  const gymTarget = goal.gymWeeklyTargetDays || 4;
+  const currentWeekGymPercent = Math.min(100, Math.round((currentWeekGymCount / gymTarget) * 100));
 
-  // Evaluate historical weeks up to current week
   const pastOrCurrentWeeks = weeks.filter((w) => w.weekStart <= currentMonday);
   pastOrCurrentWeeks.forEach((w) => {
-    // For past weeks
-    if (w.weekStart < currentMonday) {
-      if (w.gymSessions >= goal.gymWeeklyTargetDays) {
-        gymWeeksMetCount += 1;
-        tempStreak += 1;
-        if (tempStreak > longestGymWeekStreak) longestGymWeekStreak = tempStreak;
-      } else {
-        tempStreak = 0;
-      }
-    } else {
-      // For current week, if already met, increment
-      if (w.gymSessions >= goal.gymWeeklyTargetDays) {
-        gymWeeksMetCount += 1;
-        tempStreak += 1;
-        if (tempStreak > longestGymWeekStreak) longestGymWeekStreak = tempStreak;
-      }
+    if (w.gymSessions >= gymTarget) {
+      gymWeeksMetCount += 1;
+      tempStreak += 1;
+      if (tempStreak > longestGymWeekStreak) longestGymWeekStreak = tempStreak;
+    } else if (w.weekStart < currentMonday) {
+      tempStreak = 0;
     }
   });
 
@@ -182,37 +215,22 @@ export function calculateStats(
   const totalWeeksEvaluated = Math.max(1, pastOrCurrentWeeks.length);
   const gymConsistencyRate = Math.round((gymWeeksMetCount / totalWeeksEvaluated) * 100);
 
-  // 3. Day streaks
+  // Day streaks across any completed activity
+  const isDayActive = (l?: DayLog) => Boolean(l && (l.swimCompleted || l.gymCompleted || l.bikeCompleted || l.runCompleted));
+  const todayEntry = logs[currentDateStr];
   let currentActiveDayStreak = 0;
-  let longestActiveDayStreak = 0;
-  let curRun = 0;
 
-  // Check backwards from today for streak
-  let checkDate = parseISODate(currentDateStr);
-  let checkedTodayOrYesterday = false;
-
-  const todayKey = currentDateStr;
-  const todayEntry = logs[todayKey];
-  const isTodayActive = Boolean(todayEntry && (todayEntry.swimCompleted || todayEntry.gymCompleted));
-
-  if (isTodayActive) {
-    checkedTodayOrYesterday = true;
+  if (isDayActive(todayEntry)) {
     currentActiveDayStreak += 1;
   }
 
-  // Look back consecutive days
   const tempDate = parseISODate(currentDateStr);
-  if (!isTodayActive) {
-    // If today hasn't been checked yet, see if yesterday was active
-    tempDate.setDate(tempDate.getDate() - 1);
-  } else {
-    tempDate.setDate(tempDate.getDate() - 1);
-  }
+  tempDate.setDate(tempDate.getDate() - 1);
 
   for (let i = 0; i < 90; i++) {
     const key = formatISODate(tempDate);
     const entry = logs[key];
-    if (entry && (entry.swimCompleted || entry.gymCompleted)) {
+    if (isDayActive(entry)) {
       currentActiveDayStreak += 1;
       tempDate.setDate(tempDate.getDate() - 1);
     } else {
@@ -220,16 +238,12 @@ export function calculateStats(
     }
   }
 
-  // Longest overall streak calculation across all logs
   const activeDates = new Set(
-    logEntries
-      .filter((l) => l.swimCompleted || l.gymCompleted)
-      .map((l) => l.date)
+    logEntries.filter(isDayActive).map((l) => l.date)
   );
 
   let maxStreak = 0;
   let running = 0;
-  // sort all dates
   const sortedDates = Array.from(activeDates).sort();
   for (let i = 0; i < sortedDates.length; i++) {
     if (i === 0) {
@@ -245,11 +259,7 @@ export function calculateStats(
     }
     if (running > maxStreak) maxStreak = running;
   }
-  longestActiveDayStreak = Math.max(maxStreak, currentActiveDayStreak);
-
-  const totalActiveDays = activeDates.size;
-  const isTodaySwimDone = Boolean(todayEntry?.swimCompleted);
-  const isTodayGymDone = Boolean(todayEntry?.gymCompleted);
+  const longestActiveDayStreak = Math.max(maxStreak, currentActiveDayStreak);
 
   return {
     totalSwimMeters,
@@ -264,7 +274,7 @@ export function calculateStats(
 
     totalGymSessions,
     currentWeekGymCount,
-    currentWeekGymTarget: goal.gymWeeklyTargetDays,
+    currentWeekGymTarget: gymTarget,
     currentWeekGymPercent,
     gymWeeksMetCount,
     totalWeeksEvaluated,
@@ -272,16 +282,32 @@ export function calculateStats(
     currentGymWeekStreak,
     longestGymWeekStreak,
 
-    targetEndDate: goal.targetEndDate,
+    totalBikeKm,
+    bikeTargetKm,
+    bikeProgressPercent,
+    bikeRemainingKm,
+    totalBikeSessions,
+    bikeRequiredWeeklyKm,
+
+    totalRunKm,
+    runTargetKm,
+    runProgressPercent,
+    runRemainingKm,
+    totalRunSessions,
+    runRequiredWeeklyKm,
+
+    targetEndDate: goal.targetEndDate || '2026-12-31',
     daysRemainingToGoal,
     weeksRemainingToGoal,
     currentActiveDayStreak,
     longestActiveDayStreak,
-    totalActiveDays,
+    totalActiveDays: activeDates.size,
     totalActiveMinutes,
 
-    isTodaySwimDone,
-    isTodayGymDone,
+    isTodaySwimDone: Boolean(todayEntry?.swimCompleted),
+    isTodayGymDone: Boolean(todayEntry?.gymCompleted),
+    isTodayBikeDone: Boolean(todayEntry?.bikeCompleted),
+    isTodayRunDone: Boolean(todayEntry?.runCompleted),
     todayLog: todayEntry,
   };
 }
@@ -305,6 +331,10 @@ export function groupLogsByWeek(logs: Record<string, DayLog>): Record<string, We
         swimSessions: 0,
         gymSessions: 0,
         gymTargetMet: false,
+        bikeKm: 0,
+        bikeSessions: 0,
+        runKm: 0,
+        runSessions: 0,
         totalActiveMinutes: 0,
         daysCompletedCount: 0,
       };
@@ -324,14 +354,28 @@ export function groupLogsByWeek(logs: Record<string, DayLog>): Record<string, We
       current.totalActiveMinutes += log.gym?.durationMinutes || 50;
       dayHadActivity = true;
     }
+    if (log.bikeCompleted) {
+      current.bikeSessions += 1;
+      current.bikeKm += log.bike?.distanceKm || 0;
+      current.totalActiveMinutes += log.bike?.durationMinutes || 60;
+      dayHadActivity = true;
+    }
+    if (log.runCompleted) {
+      current.runSessions += 1;
+      current.runKm += log.run?.distanceKm || 0;
+      current.totalActiveMinutes += log.run?.durationMinutes || 40;
+      dayHadActivity = true;
+    }
+
     if (dayHadActivity) {
       current.daysCompletedCount += 1;
     }
   });
 
-  // Round swimKm and calculate gymTargetMet
   Object.values(result).forEach((week) => {
     week.swimKm = Math.round(week.swimKm * 10) / 10;
+    week.bikeKm = Math.round(week.bikeKm * 10) / 10;
+    week.runKm = Math.round(week.runKm * 10) / 10;
     week.gymTargetMet = week.gymSessions >= 4;
   });
 

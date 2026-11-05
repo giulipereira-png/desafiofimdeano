@@ -172,30 +172,64 @@ export const ExportPdfModal: React.FC<ExportPdfModalProps> = ({
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 
                 {/* Swim Goal */}
-                <div className="p-3.5 rounded-lg border border-cyan-200 bg-cyan-50/50">
-                  <span className="text-[10px] font-bold text-cyan-800 uppercase block">
-                    Meta Natação
-                  </span>
-                  <div className="text-xl font-extrabold text-cyan-950 mt-1">
-                    {stats.totalSwimKm.toFixed(1)} / {goal.swimTargetKm} km
+                {(goal.swimEnabled ?? true) && (
+                  <div className="p-3.5 rounded-lg border border-cyan-200 bg-cyan-50/50">
+                    <span className="text-[10px] font-bold text-cyan-800 uppercase block">
+                      Meta Natação
+                    </span>
+                    <div className="text-xl font-extrabold text-cyan-950 mt-1">
+                      {stats.totalSwimKm.toFixed(1)} / {goal.swimTargetKm} km
+                    </div>
+                    <span className="text-[11px] text-cyan-700 block mt-0.5">
+                      {stats.swimProgressPercent}% concluído • restam {stats.swimRemainingKm.toFixed(1)} km
+                    </span>
                   </div>
-                  <span className="text-[11px] text-cyan-700 block mt-0.5">
-                    {stats.swimProgressPercent}% concluído • restam {stats.swimRemainingKm.toFixed(1)} km
-                  </span>
-                </div>
+                )}
 
                 {/* Gym Goal */}
-                <div className="p-3.5 rounded-lg border border-rose-200 bg-rose-50/50">
-                  <span className="text-[10px] font-bold text-rose-800 uppercase block">
-                    Meta Academia (4x)
-                  </span>
-                  <div className="text-xl font-extrabold text-rose-950 mt-1">
-                    {stats.gymConsistencyRate}%
+                {(goal.gymEnabled ?? true) && (
+                  <div className="p-3.5 rounded-lg border border-rose-200 bg-rose-50/50">
+                    <span className="text-[10px] font-bold text-rose-800 uppercase block">
+                      Meta Academia ({goal.gymWeeklyTargetDays}x)
+                    </span>
+                    <div className="text-xl font-extrabold text-rose-950 mt-1">
+                      {stats.gymConsistencyRate}%
+                    </div>
+                    <span className="text-[11px] text-rose-700 block mt-0.5">
+                      {stats.gymWeeksMetCount} de {stats.totalWeeksEvaluated} semanas cumpridas
+                    </span>
                   </div>
-                  <span className="text-[11px] text-rose-700 block mt-0.5">
-                    {stats.gymWeeksMetCount} de {stats.totalWeeksEvaluated} semanas cumpridas
-                  </span>
-                </div>
+                )}
+
+                {/* Bike Goal */}
+                {(goal.bikeEnabled ?? true) && (
+                  <div className="p-3.5 rounded-lg border border-amber-200 bg-amber-50/50">
+                    <span className="text-[10px] font-bold text-amber-800 uppercase block">
+                      Meta Ciclismo
+                    </span>
+                    <div className="text-xl font-extrabold text-amber-950 mt-1">
+                      {stats.totalBikeKm.toFixed(1)} / {goal.bikeTargetKm} km
+                    </div>
+                    <span className="text-[11px] text-amber-700 block mt-0.5">
+                      {stats.bikeProgressPercent}% concluído • restam {stats.bikeRemainingKm.toFixed(1)} km
+                    </span>
+                  </div>
+                )}
+
+                {/* Run Goal */}
+                {(goal.runEnabled ?? true) && (
+                  <div className="p-3.5 rounded-lg border border-emerald-200 bg-emerald-50/50">
+                    <span className="text-[10px] font-bold text-emerald-800 uppercase block">
+                      Meta Corrida
+                    </span>
+                    <div className="text-xl font-extrabold text-emerald-950 mt-1">
+                      {stats.totalRunKm.toFixed(1)} / {goal.runTargetKm} km
+                    </div>
+                    <span className="text-[11px] text-emerald-700 block mt-0.5">
+                      {stats.runProgressPercent}% concluído • restam {stats.runRemainingKm.toFixed(1)} km
+                    </span>
+                  </div>
+                )}
 
                 {/* Total Workouts */}
                 <div className="p-3.5 rounded-lg border border-slate-200 bg-slate-50">
@@ -203,10 +237,10 @@ export const ExportPdfModal: React.FC<ExportPdfModalProps> = ({
                     Total de Sessões
                   </span>
                   <div className="text-xl font-extrabold text-slate-900 mt-1">
-                    {stats.totalSwimSessions + stats.totalGymSessions}
+                    {stats.totalSwimSessions + stats.totalGymSessions + stats.totalBikeSessions + stats.totalRunSessions}
                   </div>
                   <span className="text-[11px] text-slate-600 block mt-0.5">
-                    🏊 {stats.totalSwimSessions} natação • 🏋️ {stats.totalGymSessions} musculação
+                    {stats.totalSwimSessions} natação • {stats.totalGymSessions} academia • {stats.totalBikeSessions} bike • {stats.totalRunSessions} corrida
                   </span>
                 </div>
 
@@ -231,18 +265,18 @@ export const ExportPdfModal: React.FC<ExportPdfModalProps> = ({
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
                 <div>
                   <span className="font-bold text-slate-900 block">
-                    Status do Ritmo de Natação: {stats.swimPaceStatus}
+                    Status do Ritmo: {stats.swimPaceStatus}
                   </span>
                   <span className="text-slate-600">
-                    Projeção calculada para atingir exatamente 45 km até o dia 31/12/2026 ({stats.daysRemainingToGoal} dias restantes).
+                    Projeção calculada para atingir metas até {goal.targetEndDate || '31/12/2026'} ({stats.daysRemainingToGoal} dias restantes).
                   </span>
                 </div>
                 <div className="text-right sm:border-l sm:border-slate-200 sm:pl-4">
                   <span className="text-slate-500 block text-[10px] uppercase font-bold">
-                    Necessidade Semanal
+                    Sequência Ativa
                   </span>
                   <span className="text-base font-extrabold text-cyan-800">
-                    ~{stats.swimRequiredWeeklyKm.toFixed(1)} km / semana
+                    {stats.currentActiveDayStreak} dias consecutivos
                   </span>
                 </div>
               </div>
@@ -258,10 +292,11 @@ export const ExportPdfModal: React.FC<ExportPdfModalProps> = ({
                   <tr>
                     <th className="py-2.5 px-3">Semana</th>
                     <th className="py-2.5 px-3">Período</th>
-                    <th className="py-2.5 px-3">Natação (km)</th>
-                    <th className="py-2.5 px-3">Treinos Natação</th>
-                    <th className="py-2.5 px-3">Academia (dias)</th>
-                    <th className="py-2.5 px-3">Meta 4x Semanal</th>
+                    {(goal.swimEnabled ?? true) && <th className="py-2.5 px-3">Natação (km)</th>}
+                    {(goal.gymEnabled ?? true) && <th className="py-2.5 px-3">Academia (dias)</th>}
+                    {(goal.bikeEnabled ?? true) && <th className="py-2.5 px-3">Bike (km)</th>}
+                    {(goal.runEnabled ?? true) && <th className="py-2.5 px-3">Corrida (km)</th>}
+                    <th className="py-2.5 px-3">Meta Academia</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-200">
@@ -273,23 +308,34 @@ export const ExportPdfModal: React.FC<ExportPdfModalProps> = ({
                       <td className="py-2.5 px-3 text-slate-600">
                         {formatReadableDateBR(w.weekStart, false)} a {formatReadableDateBR(w.weekEnd, false)}
                       </td>
-                      <td className="py-2.5 px-3 font-semibold text-cyan-900">
-                        {w.swimKm} km
-                      </td>
-                      <td className="py-2.5 px-3 text-slate-600">
-                        {w.swimSessions} {w.swimSessions === 1 ? 'sessão' : 'sessões'}
-                      </td>
-                      <td className="py-2.5 px-3 font-semibold text-rose-900">
-                        {w.gymSessions} {w.gymSessions === 1 ? 'treino' : 'treinos'}
-                      </td>
+                      {(goal.swimEnabled ?? true) && (
+                        <td className="py-2.5 px-3 font-semibold text-cyan-900">
+                          {w.swimKm.toFixed(1)} km ({w.swimSessions}x)
+                        </td>
+                      )}
+                      {(goal.gymEnabled ?? true) && (
+                        <td className="py-2.5 px-3 font-semibold text-rose-900">
+                          {w.gymSessions} {w.gymSessions === 1 ? 'treino' : 'treinos'}
+                        </td>
+                      )}
+                      {(goal.bikeEnabled ?? true) && (
+                        <td className="py-2.5 px-3 font-semibold text-amber-900">
+                          {(w.bikeKm || 0).toFixed(1)} km ({w.bikeSessions || 0}x)
+                        </td>
+                      )}
+                      {(goal.runEnabled ?? true) && (
+                        <td className="py-2.5 px-3 font-semibold text-emerald-900">
+                          {(w.runKm || 0).toFixed(1)} km ({w.runSessions || 0}x)
+                        </td>
+                      )}
                       <td className="py-2.5 px-3">
                         {w.gymTargetMet ? (
                           <span className="font-bold text-emerald-700">
-                            ✓ Cumprida ({w.gymSessions}/4)
+                            ✓ Cumprida ({w.gymSessions}/{goal.gymWeeklyTargetDays})
                           </span>
                         ) : (
                           <span className="text-slate-500">
-                            Pendente ({w.gymSessions}/4)
+                            Pendente ({w.gymSessions}/{goal.gymWeeklyTargetDays})
                           </span>
                         )}
                       </td>
