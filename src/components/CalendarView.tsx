@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ChevronLeft, ChevronRight, Waves, Dumbbell, Bike, Footprints, Check, Calendar as CalendarIcon, Flag } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Waves, Dumbbell, Bike, Footprints, Check, Calendar as CalendarIcon, Flag, Instagram } from 'lucide-react';
 import { DayLog } from '../types/workout';
 import { formatISODate, parseISODate, TODAY_STR } from '../utils/statsCalculator';
 
@@ -8,6 +8,7 @@ interface CalendarViewProps {
   onSelectDay: (dateStr: string) => void;
   onQuickToggleSwim: (dateStr: string) => void;
   onQuickToggleGym: (dateStr: string) => void;
+  onOpenStoryForDate?: (dateStr: string) => void;
   selectedDateStr: string;
 }
 
@@ -23,6 +24,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
   onSelectDay,
   onQuickToggleSwim,
   onQuickToggleGym,
+  onOpenStoryForDate,
   selectedDateStr,
 }) => {
   // Start on November 2026 strictly
@@ -392,9 +394,24 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                         {/* Bottom Status Dot */}
                         <div className="flex items-center justify-between text-[9px] text-slate-500">
                           {totalChecks > 0 ? (
-                            <span className="text-emerald-400 font-bold flex items-center gap-0.5">
-                              <Check className="w-2.5 h-2.5" /> {totalChecks} {totalChecks === 1 ? 'check' : 'checks'}
-                            </span>
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-emerald-400 font-bold flex items-center gap-0.5">
+                                <Check className="w-2.5 h-2.5" /> {totalChecks}
+                              </span>
+                              {onOpenStoryForDate && (
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    onOpenStoryForDate(slot.dateStr);
+                                  }}
+                                  title="Criar Story para este dia"
+                                  className="p-0.5 rounded text-pink-400 hover:text-pink-300 hover:bg-pink-500/20 cursor-pointer transition-colors"
+                                >
+                                  <Instagram className="w-3 h-3" />
+                                </button>
+                              )}
+                            </div>
                           ) : (
                             <span />
                           )}

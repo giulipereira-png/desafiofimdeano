@@ -14,12 +14,19 @@ import {
   Flame,
   Target,
   Calendar,
-  MessageCircleHeart
+  AlertCircle,
+  ExternalLink,
+  Image as ImageIcon
 } from 'lucide-react';
-import html2canvas from 'html2canvas';
 import confetti from 'canvas-confetti';
 import { DayLog, GoalConfig } from '../types/workout';
 import { CalculatedStats, formatReadableDateBR, TODAY_STR } from '../utils/statsCalculator';
+import {
+  generateStoryCanvas,
+  downloadStoryCanvas,
+  copyStoryImageToClipboard,
+  StoryTheme,
+} from '../utils/storyImageGenerator';
 
 interface InstagramStoryModalProps {
   isOpen: boolean;
@@ -29,8 +36,6 @@ interface InstagramStoryModalProps {
   currentDateStr: string;
   dayLog?: DayLog;
 }
-
-type StoryTheme = 'obsidian' | 'aqua' | 'sunset' | 'titanium';
 
 export const InstagramStoryModal: React.FC<InstagramStoryModalProps> = ({
   isOpen,
@@ -47,6 +52,10 @@ export const InstagramStoryModal: React.FC<InstagramStoryModalProps> = ({
   const [customNote, setCustomNote] = useState<string>('Mais um dia de disciplina concluído!');
   const [isGenerating, setIsGenerating] = useState<boolean>(false);
   const [copiedCaption, setCopiedCaption] = useState<boolean>(false);
+  const [copiedImage, setCopiedImage] = useState<boolean>(false);
+  const [downloadSuccess, setDownloadSuccess] = useState<boolean>(false);
+  const [generatedImageUrl, setGeneratedImageUrl] = useState<string | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   if (!isOpen) return null;
 
@@ -96,71 +105,132 @@ export const InstagramStoryModal: React.FC<InstagramStoryModalProps> = ({
   };
 
   const handleDownloadStoryImage = async () => {
-    if (!storyCardRef.current) return;
     try {
       setIsGenerating(true);
-      const canvas = await html2canvas(storyCardRef.current, {
-        scale: 2, // High resolution for crisp mobile display
-        useCORS: true,
-        backgroundColor: '#030712',
+      setErrorMessage(null);
+      setDownloadSuccess(false);
+
+      const canvas = generateStoryCanvas({
+        theme,
+        headline,
+        customNote,
+        showStreakBadge,
+        dateStr: currentDateStr,
+        dayLog,
+        goal,
+        stats,
       });
-      const dataUrl = canvas.toDataURL('image/png');
-      const link = document.createElement('a');
-      link.download = `story-${goal.userHandle.replace('@', '')}-${currentDateStr}.png`;
-      link.href = dataUrl;
-      link.click();
+
+      const filename = `story-${goal.userHandle.replace('@', '')}-${currentDateStr}.png`;
+      const url = await downloadStoryCanvas(canvas, filename);
+      setGeneratedImageUrl(url);
+      setDownloadSuccess(true);
 
       confetti({
         particleCount: 100,
         spread: 80,
         origin: { y: 0.6 },
       });
-    } catch (err) {
+      setTimeout(() => setDownloadSuccess(false), 5000);
+    } catch (err: any) {
       console.error('Error generating story image:', err);
+      setErrorMessage('Erro ao gerar imagem: ' + (err?.message || 'Tente novamente.'));
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  const handleCopyImage = async () => {
+    try {
+      setIsGenerating(true);
+      setErrorMessage(null);
+
+      const canvas = generateStoryCanvas({
+        theme,
+        headline,
+        customNote,
+        showStreakBadge,
+        dateStr: currentDateStr,
+        dayLog,
+        goal,
+        stats,
+      });
+
+      const success = await copyStoryImageToClipboard(canvas);
+      if (success) {
+        setCopiedImage(true);
+        setTimeout(() => setCopiedImage(false), 3000);
+        confetti({
+          particleCount: 70,
+          spread: 60,
+          origin: { y: 0.6 },
+        });
+      } else {
+        // Fallback to download
+        await handleDownloadStoryImage();
+      }
+    } catch (err: any) {
+      console.error('Error copying image:', err);
+      await handleDownloadStoryImage();
     } finally {
       setIsGenerating(false);
     }
   };
 
   const handleDirectShare = async () => {
-    if (!storyCardRef.current) return;
     try {
       setIsGenerating(true);
-      const canvas = await html2canvas(storyCardRef.current, {
-        scale: 2,
-        useCORS: true,
+      setErrorMessage(null);
+
+      const canvas = generateStoryCanvas({
+        theme,
+        headline,
+        customNote,
+        showStreakBadge,
+        dateStr: currentDateStr,
+        dayLog,
+        goal,
+        stats,
       });
 
       canvas.toBlob(async (blob) => {
         if (!blob) {
-          handleDownloadStoryImage();
+          await handleDownloadStoryImage();
           return;
         }
 
-        const file = new File([blob], `story-${goal.userHandle.replace('@', '')}-${currentDateStr}.png`, {
+        const filename = `story-${goal.userHandle.replace('@', '')}-${currentDateStr}.png`;
+        const file = new File([blob], filename, {
           type: 'image/png',
         });
 
         if (navigator.canShare && navigator.canShare({ files: [file] })) {
-          await navigator.share({
-            files: [file],
-            title: `Check do dia ${goal.userHandle}`,
-            text: generateCaption(),
-          });
+          try {
+            await navigator.share({
+              files: [file],
+              title: `Check do dia ${goal.userHandle}`,
+              text: generateCaption(),
+            });
+          } catch (e) {
+            // User canceled share dialog
+          }
         } else {
-          // Fallback to download + copy caption
-          handleDownloadStoryImage();
-          handleCopyCaption();
+          // Fallback to direct download + copy caption
+          await downloadStoryCanvas(canvas, filename);
+          await handleCopyCaption();
+          setDownloadSuccess(true);
+          setTimeout(() => setDownloadSuccess(false), 5000);
         }
-      });
+      }, 'image/png');
     } catch (err) {
       console.error('Share failed or was canceled:', err);
+      await handleDownloadStoryImage();
     } finally {
       setIsGenerating(false);
     }
   };
 
-  // Theme styling configurations
+  // Theme styling configurations for preview
   const getThemeStyles = () => {
     switch (theme) {
       case 'aqua':
@@ -585,31 +655,84 @@ export const InstagramStoryModal: React.FC<InstagramStoryModalProps> = ({
               </div>
             </div>
 
-            {/* ACTION BUTTONS */}
+            {/* ACTION BUTTONS & FEEDBACK */}
             <div className="pt-4 border-t border-slate-800 space-y-3">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                {/* 1. Download Story Image (1080x1920) */}
+              
+              {/* Success Notification */}
+              {downloadSuccess && (
+                <div className="p-3 rounded-xl bg-emerald-950/60 border border-emerald-500/40 text-emerald-300 text-xs flex items-center justify-between gap-2 animate-fadeIn">
+                  <div className="flex items-center gap-2">
+                    <Check className="w-4 h-4 text-emerald-400 shrink-0" />
+                    <span><strong>Sucesso!</strong> Imagem gerada em 1080x1920 (9:16).</span>
+                  </div>
+                  {generatedImageUrl && (
+                    <a
+                      href={generatedImageUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-2.5 py-1 rounded-lg bg-emerald-500 text-slate-950 font-bold text-[11px] flex items-center gap-1 hover:bg-emerald-400 transition-colors"
+                    >
+                      <ExternalLink className="w-3 h-3" />
+                      <span>Abrir</span>
+                    </a>
+                  )}
+                </div>
+              )}
+
+              {/* Error Notification */}
+              {errorMessage && (
+                <div className="p-3 rounded-xl bg-rose-950/60 border border-rose-500/40 text-rose-300 text-xs flex items-center gap-2 animate-fadeIn">
+                  <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
+                  <span>{errorMessage}</span>
+                </div>
+              )}
+
+              {/* Primary Buttons */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                {/* 1. Download Story Image (1080x1920 PNG) */}
                 <button
                   onClick={handleDownloadStoryImage}
                   disabled={isGenerating}
-                  className="flex items-center justify-center gap-2 px-4 py-3 rounded-xl font-bold text-xs sm:text-sm bg-gradient-to-r from-pink-600 via-rose-500 to-amber-500 text-white shadow-lg shadow-pink-500/20 hover:opacity-95 active:scale-95 transition-all cursor-pointer disabled:opacity-50"
+                  className="flex items-center justify-center gap-1.5 px-3 py-3 rounded-xl font-bold text-xs bg-gradient-to-r from-pink-600 via-rose-500 to-amber-500 text-white shadow-lg shadow-pink-500/20 hover:opacity-95 active:scale-95 transition-all cursor-pointer disabled:opacity-50"
+                  title="Baixar arquivo PNG em alta resolução"
                 >
-                  <Download className="w-4 h-4" />
-                  <span>{isGenerating ? 'Gerando Imagem...' : 'Baixar Imagem (Stories 9:16)'}</span>
+                  <Download className="w-4 h-4 shrink-0" />
+                  <span>{isGenerating ? 'Gerando...' : 'Baixar Imagem'}</span>
                 </button>
 
-                {/* 2. Direct Share to Instagram Sheet */}
+                {/* 2. Copy Image directly to Clipboard */}
+                <button
+                  onClick={handleCopyImage}
+                  disabled={isGenerating}
+                  className="flex items-center justify-center gap-1.5 px-3 py-3 rounded-xl font-bold text-xs bg-cyan-600 hover:bg-cyan-500 text-slate-950 shadow-md shadow-cyan-500/20 active:scale-95 transition-all cursor-pointer disabled:opacity-50"
+                  title="Copiar imagem PNG para colar direto no Instagram"
+                >
+                  {copiedImage ? (
+                    <>
+                      <Check className="w-4 h-4 stroke-[3]" />
+                      <span>Imagem Copiada!</span>
+                    </>
+                  ) : (
+                    <>
+                      <ImageIcon className="w-4 h-4 shrink-0" />
+                      <span>Copiar Imagem</span>
+                    </>
+                  )}
+                </button>
+
+                {/* 3. Direct Share to Instagram Sheet */}
                 <button
                   onClick={handleDirectShare}
                   disabled={isGenerating}
-                  className="flex items-center justify-center gap-2 px-4 py-3 rounded-xl font-bold text-xs sm:text-sm bg-slate-800 hover:bg-slate-700 text-white border border-slate-700 active:scale-95 transition-all cursor-pointer disabled:opacity-50"
+                  className="flex items-center justify-center gap-1.5 px-3 py-3 rounded-xl font-bold text-xs bg-slate-800 hover:bg-slate-700 text-white border border-slate-700 active:scale-95 transition-all cursor-pointer disabled:opacity-50"
+                  title="Compartilhar no celular ou salvar"
                 >
-                  <Share2 className="w-4 h-4 text-cyan-400" />
-                  <span>Compartilhar no Instagram</span>
+                  <Share2 className="w-4 h-4 text-cyan-400 shrink-0" />
+                  <span>Compartilhar</span>
                 </button>
               </div>
 
-              {/* 3. Copy Caption for Posts/Stories */}
+              {/* 4. Copy Caption for Posts/Stories */}
               <button
                 onClick={handleCopyCaption}
                 className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold bg-slate-900 hover:bg-slate-850 text-slate-300 border border-slate-800 transition-colors cursor-pointer"

@@ -189,6 +189,56 @@ export const DayEditModal: React.FC<DayEditModalProps> = ({
     onClose();
   };
 
+  const handleOpenStory = () => {
+    const updated: DayLog = {
+      date: dateStr,
+      swimCompleted,
+      swim: swimCompleted
+        ? {
+            distanceMeters: swimDistance,
+            durationMinutes: swimDuration,
+            poolType: swimPoolType,
+            style: swimStyle as any,
+            notes: swimNotes,
+          }
+        : undefined,
+      gymCompleted,
+      gym: gymCompleted
+        ? {
+            focus: gymFocus as any,
+            durationMinutes: gymDuration,
+            intensity: gymIntensity,
+            notes: gymNotes,
+          }
+        : undefined,
+      bikeCompleted,
+      bike: bikeCompleted
+        ? {
+            distanceKm: bikeDistance,
+            durationMinutes: bikeDuration,
+            bikeType,
+            notes: bikeNotes,
+          }
+        : undefined,
+      runCompleted,
+      run: runCompleted
+        ? {
+            distanceKm: runDistance,
+            durationMinutes: runDuration,
+            terrain: runTerrain,
+            paceAvg: runPace,
+            notes: runNotes,
+          }
+        : undefined,
+      feeling: feeling as any,
+      updatedAt: new Date().toISOString(),
+    };
+
+    onSaveDayLog(updated);
+    onClose();
+    onOpenStoryForDate(dateStr);
+  };
+
   const handleDelete = () => {
     onDeleteDayLog(dateStr);
     onClose();
@@ -224,19 +274,14 @@ export const DayEditModal: React.FC<DayEditModalProps> = ({
           </div>
 
           <div className="flex items-center gap-2">
-            {(swimCompleted || gymCompleted || bikeCompleted || runCompleted) && (
-              <button
-                onClick={() => {
-                  onClose();
-                  onOpenStoryForDate(dateStr);
-                }}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-pink-500/20 text-pink-300 border border-pink-500/30 hover:bg-pink-500/30 transition-all cursor-pointer"
-                title="Criar Story para este dia"
-              >
-                <Instagram className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">Story</span>
-              </button>
-            )}
+            <button
+              onClick={handleOpenStory}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-gradient-to-r from-pink-500/20 to-rose-500/20 text-pink-300 border border-pink-500/30 hover:bg-pink-500/30 transition-all cursor-pointer"
+              title="Salvar e criar Story para este dia"
+            >
+              <Instagram className="w-3.5 h-3.5" />
+              <span>Criar Story</span>
+            </button>
 
             <button
               onClick={onClose}
@@ -711,6 +756,14 @@ export const DayEditModal: React.FC<DayEditModalProps> = ({
               className="px-4 py-2.5 rounded-xl text-xs font-semibold text-slate-400 hover:text-white transition-colors cursor-pointer"
             >
               Cancelar
+            </button>
+            <button
+              onClick={handleOpenStory}
+              className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold bg-slate-800 hover:bg-slate-750 text-pink-300 border border-pink-500/30 active:scale-95 transition-all cursor-pointer"
+              title="Salvar alterações e abrir Instagram Story Studio"
+            >
+              <Instagram className="w-4 h-4 text-pink-400" />
+              <span>Salvar & Story</span>
             </button>
             <button
               onClick={handleSave}

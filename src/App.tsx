@@ -466,6 +466,7 @@ export default function App() {
             }}
             onQuickToggleSwim={(dateStr) => handleToggleSwim(dateStr)}
             onQuickToggleGym={(dateStr) => handleToggleGym(dateStr)}
+            onOpenStoryForDate={handleOpenStoryForDate}
           />
         )}
 
