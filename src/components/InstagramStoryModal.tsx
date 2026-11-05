@@ -41,9 +41,8 @@ export const InstagramStoryModal: React.FC<InstagramStoryModalProps> = ({
   const storyCardRef = useRef<HTMLDivElement>(null);
   const [theme, setTheme] = useState<StoryTheme>('obsidian');
   const [headline, setHeadline] = useState<string>('CHECK DO DIA PAGO! 🔥');
-  const [showCommunityBadge, setShowCommunityBadge] = useState<boolean>(true);
-  const [showQuestionSticker, setShowQuestionSticker] = useState<boolean>(true);
-  const [customNote, setCustomNote] = useState<string>('Constância não é sorte, é compromisso! Quem vem comigo?');
+  const [showStreakBadge, setShowStreakBadge] = useState<boolean>(true);
+  const [customNote, setCustomNote] = useState<string>('Mais um dia de disciplina concluído rumo a 31/12/2026!');
   const [isGenerating, setIsGenerating] = useState<boolean>(false);
   const [copiedCaption, setCopiedCaption] = useState<boolean>(false);
 
@@ -57,12 +56,12 @@ export const InstagramStoryModal: React.FC<InstagramStoryModalProps> = ({
 
   // Format ready caption for Instagram
   const generateCaption = () => {
-    return `Check de hoje pago com a @prof_giu! ✅🔥\n\n` +
-      `🏊‍♀️ Natação: ${isSwimDone ? `+${(swimDistance / 1000).toFixed(1)}km na conta! Acumulado: ${stats.totalSwimKm.toFixed(1)}km / ${goal.swimTargetKm}km` : 'Descanso ativo na piscina'}\n` +
+    return `Check de hoje pago! ✅🔥\n\n` +
+      `🏊‍♀️ Natação: ${isSwimDone ? `+${(swimDistance / 1000).toFixed(1)}km na conta! (Total: ${stats.totalSwimKm.toFixed(1)}km / ${goal.swimTargetKm}km)` : 'Descanso ativo na água'}\n` +
       `🏋️‍♀️ Academia: ${isGymDone ? `${gymFocus} concluído! (${stats.currentWeekGymCount}/${goal.gymWeeklyTargetDays} na semana)` : 'Dia sem musculação'}\n\n` +
-      `🎯 Meta de Fim de Ano 2026: Faltam apenas ${stats.daysRemainingToGoal} dias até 31/12/2026!\n` +
-      `Quem tá construindo essa meta comigo? Comenta aqui embaixo o seu treino de hoje! 👇\n\n` +
-      `#DesafioProfGiu #Meta2026 #Natacao45km #Constancia #ProfGiu #TreinoTodoDia #FimDeAnoEmForma`;
+      `🎯 Meta Individual 2026: Faltam apenas ${stats.daysRemainingToGoal} dias até 31/12/2026!\n` +
+      `🔥 Sequência ativa: ${stats.currentActiveDayStreak} dias seguidos de constância.\n\n` +
+      `#ProfGiu #Meta2026 #Natacao45km #Academia4x #Disciplina #TreinoIndividual #Constancia`;
   };
 
   const handleCopyCaption = async () => {
@@ -240,7 +239,7 @@ export const InstagramStoryModal: React.FC<InstagramStoryModalProps> = ({
                 <div className="flex items-center gap-2.5">
                   <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-cyan-400 via-rose-500 to-amber-400 p-[2px] shadow-md">
                     <div className="w-full h-full bg-slate-900 rounded-full flex items-center justify-center font-bold text-xs text-white">
-                      GP
+                      GS
                     </div>
                   </div>
                   <div>
@@ -347,32 +346,31 @@ export const InstagramStoryModal: React.FC<InstagramStoryModalProps> = ({
                   </div>
                 )}
 
-                {/* Community Interaction Sticker Simulation */}
-                {showQuestionSticker && (
-                  <div className="p-2 rounded-xl bg-gradient-to-r from-pink-500/20 via-purple-500/20 to-cyan-500/20 border border-white/20 text-center backdrop-blur-sm">
-                    <span className="text-[10px] font-bold text-white uppercase tracking-wider block">
-                      💬 E VOCÊ, JÁ FEZ O SEU CHECK HOJE?
+                {/* Individual Streak Sticker */}
+                {showStreakBadge && (
+                  <div className="p-2 rounded-xl bg-gradient-to-r from-cyan-500/15 via-slate-800 to-rose-500/15 border border-white/15 text-center backdrop-blur-sm">
+                    <span className="text-[10px] font-bold text-white uppercase tracking-wider flex items-center justify-center gap-1">
+                      <Flame className="w-3.5 h-3.5 text-amber-400 fill-amber-400" />
+                      SEQUÊNCIA: {stats.currentActiveDayStreak} DIAS CONSECUTIVOS!
                     </span>
                     <span className="text-[9px] text-slate-300 block mt-0.5">
-                      Responde nos stories ou me marca: {goal.userHandle}
+                      Meta Individual • Foco total até 31/12
                     </span>
                   </div>
                 )}
               </div>
 
-              {/* CARD BOTTOM: Countdown & Challenge Tag */}
+              {/* CARD BOTTOM: Countdown & Individual Goal */}
               <div className="relative z-10 pt-2 border-t border-white/10 flex items-center justify-between text-[10px]">
                 <div className="flex items-center gap-1 text-slate-300 font-semibold">
                   <Target className="w-3 h-3 text-rose-400" />
                   <span>31 DEZ 2026</span>
-                  <span className="text-cyan-400 font-bold">• {stats.daysRemainingToGoal} dias</span>
+                  <span className="text-cyan-400 font-bold">• {stats.daysRemainingToGoal} dias restantes</span>
                 </div>
 
-                {showCommunityBadge && (
-                  <span className="px-2 py-0.5 rounded-full bg-white/10 border border-white/20 text-white font-bold text-[9px]">
-                    #DesafioProfGiu
-                  </span>
-                )}
+                <span className="px-2 py-0.5 rounded-full bg-white/10 border border-white/20 text-white font-bold text-[9px]">
+                  {goal.userHandle}
+                </span>
               </div>
             </div>
           </div>
@@ -467,37 +465,27 @@ export const InstagramStoryModal: React.FC<InstagramStoryModalProps> = ({
               {/* Custom Motivational Note */}
               <div>
                 <label className="text-xs font-bold uppercase tracking-wider text-slate-400 block mb-1.5">
-                  3. Mensagem para os Seguidores
+                  3. Nota / Frase do Dia
                 </label>
                 <input
                   type="text"
                   value={customNote}
                   onChange={(e) => setCustomNote(e.target.value)}
-                  placeholder="Escreva algo para engajar sua comunidade..."
+                  placeholder="Escreva sua frase ou observação do dia..."
                   className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-800 text-white text-xs placeholder:text-slate-600 focus:outline-none focus:border-cyan-400"
                 />
               </div>
 
-              {/* Toggle stickers */}
+              {/* Toggle badge */}
               <div className="flex flex-wrap items-center gap-4 pt-1">
                 <label className="flex items-center gap-2 text-xs text-slate-300 cursor-pointer">
                   <input
                     type="checkbox"
-                    checked={showQuestionSticker}
-                    onChange={(e) => setShowQuestionSticker(e.target.checked)}
+                    checked={showStreakBadge}
+                    onChange={(e) => setShowStreakBadge(e.target.checked)}
                     className="rounded bg-slate-900 border-slate-700 text-cyan-500 focus:ring-0 cursor-pointer"
                   />
-                  <span>Sticker interativo ("E você, já fez o check?")</span>
-                </label>
-
-                <label className="flex items-center gap-2 text-xs text-slate-300 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={showCommunityBadge}
-                    onChange={(e) => setShowCommunityBadge(e.target.checked)}
-                    className="rounded bg-slate-900 border-slate-700 text-cyan-500 focus:ring-0 cursor-pointer"
-                  />
-                  <span>Hashtag #DesafioProfGiu</span>
+                  <span>Exibir selo de dias consecutivos de constância</span>
                 </label>
               </div>
             </div>

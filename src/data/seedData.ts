@@ -6,7 +6,7 @@ export const DEFAULT_GOAL: GoalConfig = {
   targetEndDate: '2026-12-31',
   startDate: '2026-09-01',
   userHandle: '@prof_giu',
-  userName: 'Giu Pereira',
+  userName: 'Giu Sousa',
 };
 
 // Seed data representing consistent training from September 2026 to November 2026

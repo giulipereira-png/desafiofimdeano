@@ -34,7 +34,12 @@ export function loadGoal(): GoalConfig {
       saveGoal(DEFAULT_GOAL);
       return DEFAULT_GOAL;
     }
-    return { ...DEFAULT_GOAL, ...JSON.parse(raw) };
+    const parsed = JSON.parse(raw);
+    // If previously saved as Giu Pereira, migrate to Giu Sousa
+    const userName = (parsed.userName === 'Giu Pereira' || !parsed.userName) ? 'Giu Sousa' : parsed.userName;
+    const merged = { ...DEFAULT_GOAL, ...parsed, userName };
+    saveGoal(merged);
+    return merged;
   } catch (err) {
     console.error('Error loading goal from localStorage:', err);
     return DEFAULT_GOAL;
@@ -55,4 +60,32 @@ export function resetToDefaults(): { logs: Record<string, DayLog>; goal: GoalCon
   saveLogs(INITIAL_LOGS);
   saveGoal(DEFAULT_GOAL);
   return { logs: INITIAL_LOGS, goal: DEFAULT_GOAL };
+}
+
+// Backup & Sync helper for transferring data between browsers
+export function exportDataAsJSON(): string {
+  const data = {
+    app: 'prof_giu_workout_tracker',
+    version: '1.0',
+    exportedAt: new Date().toISOString(),
+    goal: loadGoal(),
+    logs: loadLogs(),
+  };
+  return JSON.stringify(data, null, 2);
+}
+
+export function importDataFromJSON(jsonString: string): { success: boolean; count?: number; error?: string } {
+  try {
+    const parsed = JSON.parse(jsonString);
+    if (!parsed.logs || typeof parsed.logs !== 'object') {
+      return { success: false, error: 'Arquivo inválido: registros de treino não encontrados.' };
+    }
+    saveLogs(parsed.logs);
+    if (parsed.goal) {
+      saveGoal({ ...DEFAULT_GOAL, ...parsed.goal, userName: 'Giu Sousa' });
+    }
+    return { success: true, count: Object.keys(parsed.logs).length };
+  } catch (err) {
+    return { success: false, error: 'Erro ao processar arquivo JSON.' };
+  }
 }

@@ -7,7 +7,7 @@ import {
   Sparkles,
   Instagram,
   FileText,
-  Users,
+  HardDrive,
   Flag,
   Flame,
   CheckCircle2,
@@ -20,12 +20,23 @@ import { CalendarView } from './components/CalendarView';
 import { WeeklyStatsView } from './components/WeeklyStatsView';
 import { InstagramStoryModal } from './components/InstagramStoryModal';
 import { ExportPdfModal } from './components/ExportPdfModal';
-import { CommunityChallengeModal } from './components/CommunityChallengeModal';
+import { SyncBackupModal } from './components/SyncBackupModal';
 import { DayEditModal } from './components/DayEditModal';
 
 import { DayLog, GoalConfig } from './types/workout';
 import { loadLogs, saveLogs, loadGoal, saveGoal, resetToDefaults } from './utils/storage';
 import { calculateStats, TODAY_STR, formatReadableDateBR } from './utils/statsCalculator';
+
+import { onAuthStateChanged, User } from 'firebase/auth';
+import {
+  auth,
+  testConnection,
+  subscribeToUserWorkouts,
+  subscribeToUserGoal,
+  syncWorkoutToCloud,
+  deleteWorkoutFromCloud,
+  syncGoalToCloud,
+} from './firebase';
 
 export default function App() {
   const [logs, setLogs] = useState<Record<string, DayLog>>(() => loadLogs());
@@ -33,12 +44,78 @@ export default function App() {
   const [selectedDateStr, setSelectedDateStr] = useState<string>(TODAY_STR);
   const [activeTab, setActiveTab] = useState<'calendar' | 'stats'>('calendar');
 
+  // Firebase Auth & Cloud Sync State
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [isSyncingCloud, setIsSyncingCloud] = useState<boolean>(false);
+
   // Modals state
   const [isStoryModalOpen, setIsStoryModalOpen] = useState<boolean>(false);
   const [isPdfModalOpen, setIsPdfModalOpen] = useState<boolean>(false);
-  const [isCommunityModalOpen, setIsCommunityModalOpen] = useState<boolean>(false);
+  const [isSyncModalOpen, setIsSyncModalOpen] = useState<boolean>(false);
   const [isDayEditModalOpen, setIsDayEditModalOpen] = useState<boolean>(false);
   const [modalDateStr, setModalDateStr] = useState<string>(TODAY_STR);
+
+  // Test Firebase connection on mount
+  useEffect(() => {
+    testConnection();
+  }, []);
+
+  // Listen for Firebase Auth changes
+  useEffect(() => {
+    const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
+      setCurrentUser(user);
+    });
+    return () => unsubscribeAuth();
+  }, []);
+
+  // Subscribe to Cloud Workouts and Goals when logged in
+  useEffect(() => {
+    if (!currentUser) return;
+
+    // Subscribe to cloud workouts
+    const unsubWorkouts = subscribeToUserWorkouts(currentUser.uid, (cloudLogs) => {
+      if (Object.keys(cloudLogs).length > 0) {
+        setLogs((prev) => {
+          const merged = { ...prev, ...cloudLogs };
+          saveLogs(merged);
+          return merged;
+        });
+      }
+    });
+
+    // Subscribe to cloud goal
+    const unsubGoal = subscribeToUserGoal(currentUser.uid, (cloudGoal) => {
+      if (cloudGoal && Object.keys(cloudGoal).length > 0) {
+        setGoal((prev) => {
+          const merged = { ...prev, ...cloudGoal, userName: 'Giu Sousa' };
+          saveGoal(merged);
+          return merged;
+        });
+      }
+    });
+
+    return () => {
+      unsubWorkouts();
+      unsubGoal();
+    };
+  }, [currentUser]);
+
+  // Sync all local logs to cloud on initial login or demand
+  const handleSyncAllToCloud = async () => {
+    if (!currentUser) return;
+    try {
+      setIsSyncingCloud(true);
+      await syncGoalToCloud(currentUser.uid, goal);
+      const entries = Object.values(logs);
+      for (const entry of entries) {
+        await syncWorkoutToCloud(currentUser.uid, entry);
+      }
+    } catch (err) {
+      console.error('Error syncing all workouts to cloud:', err);
+    } finally {
+      setIsSyncingCloud(false);
+    }
+  };
 
   // Sync to localStorage
   useEffect(() => {
@@ -74,6 +151,10 @@ export default function App() {
         updatedAt: new Date().toISOString(),
       };
 
+      if (currentUser) {
+        syncWorkoutToCloud(currentUser.uid, updated).catch(console.error);
+      }
+
       return { ...prev, [date]: updated };
     });
   };
@@ -99,6 +180,10 @@ export default function App() {
         updatedAt: new Date().toISOString(),
       };
 
+      if (currentUser) {
+        syncWorkoutToCloud(currentUser.uid, updated).catch(console.error);
+      }
+
       return { ...prev, [date]: updated };
     });
   };
@@ -108,6 +193,9 @@ export default function App() {
       ...prev,
       [newLog.date]: newLog,
     }));
+    if (currentUser) {
+      syncWorkoutToCloud(currentUser.uid, newLog).catch(console.error);
+    }
   };
 
   const handleDeleteDayLog = (date: string) => {
@@ -116,6 +204,9 @@ export default function App() {
       delete copy[date];
       return copy;
     });
+    if (currentUser) {
+      deleteWorkoutFromCloud(currentUser.uid, date).catch(console.error);
+    }
   };
 
   const handleOpenDayDetails = (date: string) => {
@@ -145,12 +236,13 @@ export default function App() {
       <Header
         stats={stats}
         goal={goal}
+        currentUser={currentUser}
         onOpenStoryModal={() => {
           setModalDateStr(selectedDateStr);
           setIsStoryModalOpen(true);
         }}
         onOpenPdfModal={() => setIsPdfModalOpen(true)}
-        onOpenCommunityModal={() => setIsCommunityModalOpen(true)}
+        onOpenSyncModal={() => setIsSyncModalOpen(true)}
         onResetData={handleResetData}
       />
 
@@ -166,10 +258,10 @@ export default function App() {
             <div>
               <div className="flex items-center gap-2">
                 <span className="text-xs uppercase tracking-wider font-bold text-amber-400">
-                  Desafio @prof_giu até 31/12/2026
+                  Meta Individual até 31/12/2026
                 </span>
                 <span className="text-[11px] px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 font-semibold border border-slate-700">
-                  Meta Conjunta
+                  Desafio Pessoal
                 </span>
               </div>
               <h2 className="text-base sm:text-lg font-bold text-white tracking-tight mt-0.5">
@@ -200,11 +292,11 @@ export default function App() {
             </div>
 
             <button
-              onClick={() => setIsCommunityModalOpen(true)}
-              className="px-3.5 py-2 rounded-xl bg-indigo-500/15 hover:bg-indigo-500/25 text-indigo-300 font-semibold border border-indigo-500/30 transition-all flex items-center gap-1.5 cursor-pointer"
+              onClick={() => setIsSyncModalOpen(true)}
+              className="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold border border-slate-700 transition-all flex items-center gap-1.5 cursor-pointer"
             >
-              <Users className="w-3.5 h-3.5" />
-              <span>Ver Comunidade</span>
+              <HardDrive className="w-3.5 h-3.5 text-cyan-400" />
+              <span>Backup / Sincronizar</span>
             </button>
           </div>
         </div>
@@ -359,12 +451,17 @@ export default function App() {
         logs={logs}
       />
 
-      {/* 3. Community Challenge Modal */}
-      <CommunityChallengeModal
-        isOpen={isCommunityModalOpen}
-        onClose={() => setIsCommunityModalOpen(false)}
-        goal={goal}
-        stats={stats}
+      {/* 3. Sync & Backup Modal */}
+      <SyncBackupModal
+        isOpen={isSyncModalOpen}
+        onClose={() => setIsSyncModalOpen(false)}
+        currentUser={currentUser}
+        onSyncAllToCloud={handleSyncAllToCloud}
+        isSyncingCloud={isSyncingCloud}
+        onDataImported={() => {
+          setLogs(loadLogs());
+          setGoal(loadGoal());
+        }}
       />
 
       {/* 4. Day Details / Edit Workout Modal */}

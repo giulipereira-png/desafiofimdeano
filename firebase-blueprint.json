@@ -1,0 +1,90 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "User profile and target goal settings",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "The unique Firebase Auth user ID"
+        },
+        "userName": {
+          "type": "string",
+          "description": "Display name of the user"
+        },
+        "userHandle": {
+          "type": "string",
+          "description": "Instagram or social handle"
+        },
+        "swimTargetKm": {
+          "type": "number",
+          "description": "Target swimming kilometers by end date"
+        },
+        "gymWeeklyTargetDays": {
+          "type": "number",
+          "description": "Target weekly gym workouts frequency"
+        },
+        "targetEndDate": {
+          "type": "string",
+          "description": "Target end date ISO format YYYY-MM-DD"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "Last updated timestamp"
+        }
+      },
+      "required": ["userId", "userName", "userHandle", "swimTargetKm", "gymWeeklyTargetDays", "targetEndDate"]
+    },
+    "WorkoutLog": {
+      "title": "WorkoutLog",
+      "description": "Daily workout log entry for swimming and gym",
+      "type": "object",
+      "properties": {
+        "date": {
+          "type": "string",
+          "description": "Date in YYYY-MM-DD format"
+        },
+        "userId": {
+          "type": "string",
+          "description": "Owner user ID"
+        },
+        "swimCompleted": {
+          "type": "boolean",
+          "description": "Whether swim was completed"
+        },
+        "gymCompleted": {
+          "type": "boolean",
+          "description": "Whether gym was completed"
+        },
+        "swim": {
+          "type": "object",
+          "description": "Swim workout details"
+        },
+        "gym": {
+          "type": "object",
+          "description": "Gym workout details"
+        },
+        "feeling": {
+          "type": "string",
+          "description": "Perceived feeling"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "Timestamp of update"
+        }
+      },
+      "required": ["date", "userId", "swimCompleted", "gymCompleted"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "UserProfile",
+      "description": "User profile and personalized goal config"
+    },
+    "/users/{userId}/workouts/{dateId}": {
+      "schema": "WorkoutLog",
+      "description": "Daily workouts logged by the user"
+    }
+  }
+}

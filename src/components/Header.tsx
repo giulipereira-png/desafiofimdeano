@@ -1,23 +1,26 @@
 import React from 'react';
-import { Instagram, FileText, Users, CalendarCheck, Sparkles, Target, RotateCcw } from 'lucide-react';
+import { Instagram, FileText, Sparkles, Target, RotateCcw, HardDrive } from 'lucide-react';
+import { User } from 'firebase/auth';
 import { CalculatedStats } from '../utils/statsCalculator';
 import { GoalConfig } from '../types/workout';
 
 interface HeaderProps {
   stats: CalculatedStats;
   goal: GoalConfig;
+  currentUser?: User | null;
   onOpenStoryModal: () => void;
   onOpenPdfModal: () => void;
-  onOpenCommunityModal: () => void;
+  onOpenSyncModal: () => void;
   onResetData: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
   stats,
   goal,
+  currentUser,
   onOpenStoryModal,
   onOpenPdfModal,
-  onOpenCommunityModal,
+  onOpenSyncModal,
   onResetData,
 }) => {
   return (
@@ -31,7 +34,7 @@ export const Header: React.FC<HeaderProps> = ({
               <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-cyan-500 via-indigo-500 to-rose-500 p-[2px] shadow-lg shadow-cyan-500/10">
                 <div className="w-full h-full bg-slate-900 rounded-[14px] flex items-center justify-center overflow-hidden">
                   <span className="text-xl font-bold bg-gradient-to-r from-cyan-300 to-rose-300 bg-clip-text text-transparent">
-                    GP
+                    GS
                   </span>
                 </div>
               </div>
@@ -48,11 +51,17 @@ export const Header: React.FC<HeaderProps> = ({
                     {goal.userHandle}
                   </span>
                 </h1>
+                {currentUser && (
+                  <span className="hidden sm:inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                    Nuvem Conectada
+                  </span>
+                )}
               </div>
               <div className="flex items-center gap-2 text-xs text-slate-400 mt-0.5">
                 <span className="inline-flex items-center gap-1 text-slate-300">
                   <Target className="w-3.5 h-3.5 text-rose-400" />
-                  Meta Fim de Ano 2026:
+                  Meta Individual 2026:
                 </span>
                 <span className="text-slate-300 font-medium">31 Dez 2026</span>
                 <span className="text-slate-600">•</span>
@@ -63,11 +72,11 @@ export const Header: React.FC<HeaderProps> = ({
 
           {/* Action CTAs */}
           <div className="flex flex-wrap items-center gap-2 sm:gap-2.5">
-            {/* Instagram Stories CTA - Highlighted */}
+            {/* Instagram Stories CTA */}
             <button
               onClick={onOpenStoryModal}
               className="flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold bg-gradient-to-r from-pink-600 via-rose-500 to-amber-500 text-white shadow-md shadow-rose-500/20 hover:opacity-95 active:scale-95 transition-all cursor-pointer"
-              title="Criar Story para Instagram"
+              title="Criar Story do seu treino diário para o Instagram"
             >
               <Instagram className="w-4 h-4" />
               <span>Postar no Stories</span>
@@ -77,21 +86,20 @@ export const Header: React.FC<HeaderProps> = ({
             <button
               onClick={onOpenPdfModal}
               className="flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold bg-slate-900 hover:bg-slate-800 text-slate-200 border border-slate-700/80 active:scale-95 transition-all cursor-pointer"
-              title="Exportar Relatório em PDF"
+              title="Exportar Relatório em PDF para análise"
             >
               <FileText className="w-4 h-4 text-cyan-400" />
               <span>Exportar PDF</span>
             </button>
 
-            {/* Community Challenge */}
+            {/* Backup & Sync */}
             <button
-              onClick={onOpenCommunityModal}
+              onClick={onOpenSyncModal}
               className="flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-medium bg-slate-900/80 hover:bg-slate-800 text-slate-300 border border-slate-800 active:scale-95 transition-all cursor-pointer"
-              title="Engajar seguidores no desafio"
+              title="Sincronizar e fazer backup dos treinos"
             >
-              <Users className="w-4 h-4 text-indigo-400" />
-              <span className="hidden sm:inline">Desafio Comunidade</span>
-              <span className="sm:hidden">Comunidade</span>
+              <HardDrive className="w-4 h-4 text-indigo-400" />
+              <span>Sincronizar / Backup</span>
             </button>
 
             {/* Reset data helper */}
@@ -109,3 +117,4 @@ export const Header: React.FC<HeaderProps> = ({
     </header>
   );
 };
+
