@@ -538,6 +538,7 @@ export default function App() {
         goal={goal}
         currentDateStr={modalDateStr}
         dayLog={logs[modalDateStr]}
+        logs={logs}
       />
 
       {/* 2. PDF Export Modal */}
